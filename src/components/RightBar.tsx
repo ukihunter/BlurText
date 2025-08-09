@@ -37,9 +37,13 @@ const RightBar = ({
 
   // Suggested users state
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
-  const [followingStates, setFollowingStates] = useState<{ [key: string]: boolean }>({});
+  const [followingStates, setFollowingStates] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [usersLoading, setUsersLoading] = useState(true);
-  const [processingUsers, setProcessingUsers] = useState<{ [key: string]: boolean }>({});
+  const [processingUsers, setProcessingUsers] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   // Translate search placeholder
   useEffect(() => {
@@ -62,13 +66,13 @@ const RightBar = ({
   const fetchSuggestedUsers = async () => {
     try {
       setUsersLoading(true);
-      
+
       const response = await fetch("/api/users/suggested?limit=3"); // Limit to 3 for "Who to follow"
-      
+
       if (response.ok) {
         const data = await response.json();
         setSuggestedUsers(data.users || []);
-        
+
         // Initialize following states (these are suggested users, so not following yet)
         const states: { [key: string]: boolean } = {};
         (data.users || []).forEach((user: SuggestedUser) => {
@@ -80,7 +84,11 @@ const RightBar = ({
         setSuggestedUsers([]);
       } else {
         const errorData = await response.json();
-        console.error("Failed to fetch suggested users:", response.status, errorData);
+        console.error(
+          "Failed to fetch suggested users:",
+          response.status,
+          errorData
+        );
         setSuggestedUsers([]);
       }
     } catch (error) {
@@ -97,28 +105,31 @@ const RightBar = ({
   };
 
   // Handle follow/unfollow action
-  const handleFollowToggle = async (userId: string, event?: React.MouseEvent) => {
+  const handleFollowToggle = async (
+    userId: string,
+    event?: React.MouseEvent
+  ) => {
     console.log("🔄 Follow button clicked for user:", userId);
-    
+
     // Prevent any default behavior and event bubbling
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
-    
+
     // Prevent multiple clicks while processing
     if (processingUsers[userId]) {
       console.log("⏳ Already processing for user:", userId);
       return;
     }
-    
+
     try {
       // Set processing state
-      setProcessingUsers(prev => ({ ...prev, [userId]: true }));
-      
+      setProcessingUsers((prev) => ({ ...prev, [userId]: true }));
+
       const isCurrentlyFollowing = followingStates[userId];
       console.log("📊 Current following state:", isCurrentlyFollowing);
-      
+
       const endpoint = isCurrentlyFollowing ? "/api/unfollow" : "/api/follow";
       const method = isCurrentlyFollowing ? "DELETE" : "POST";
 
@@ -135,11 +146,13 @@ const RightBar = ({
       console.log("✅ API response status:", response.status);
 
       if (response.ok) {
-        console.log("🎉 Follow/unfollow successful, triggering full page refresh...");
-        
+        console.log(
+          "🎉 Follow/unfollow successful, triggering full page refresh..."
+        );
+
         // Trigger full page refresh
         window.location.reload();
-        
+
         console.log("✅ Page refresh triggered");
       } else {
         const errorData = await response.json();
@@ -149,7 +162,7 @@ const RightBar = ({
       console.error("💥 Error in handleFollowToggle:", error);
     } finally {
       // Clear processing state
-      setProcessingUsers(prev => ({ ...prev, [userId]: false }));
+      setProcessingUsers((prev) => ({ ...prev, [userId]: false }));
       console.log("🏁 handleFollowToggle completed");
     }
   };
@@ -208,7 +221,7 @@ const RightBar = ({
   // Function to handle search box click
 
   return (
-    <div className="bg-white dark:bg-[#262335] text-black dark:text-white transition-colors duration-300">
+    <div className="w-full h-full bg-white dark:bg-[#262335] text-black dark:text-white transition-colors duration-300 p-4">
       <div className="relative">
         <input
           type="text"
@@ -248,7 +261,10 @@ const RightBar = ({
             <TranslatedText>Subscribe to Premium</TranslatedText>
           </div>
           <span className="text-gray-700 dark:text-white text-[14px] font-extralight">
-            <TranslatedText>Subscribe to unlock new features and if eligible, receive a share of revenue.</TranslatedText>
+            <TranslatedText>
+              Subscribe to unlock new features and if eligible, receive a share
+              of revenue.
+            </TranslatedText>
           </span>
 
           <Link
@@ -263,10 +279,14 @@ const RightBar = ({
       {/* Cryptocurrency section */}
       <div className="mt-1 mb-2 border border-gray-300 dark:border-zinc-600 rounded-3xl p-4 bg-gray-50 dark:bg-[#262335] transition-colors duration-300">
         <div className="flex justify-center items-center mb-4 font-bold">
-          <span><TranslatedText>Trending Crypto</TranslatedText></span>
+          <span>
+            <TranslatedText>Trending Crypto</TranslatedText>
+          </span>
         </div>
         {cryptoLoading ? (
-          <div><TranslatedText>Loading crypto data...</TranslatedText></div>
+          <div>
+            <TranslatedText>Loading crypto data...</TranslatedText>
+          </div>
         ) : Array.isArray(crypto) && crypto.length > 0 ? (
           <ul className="space-y-2">
             {crypto.slice(0, 3).map((coin) => (
@@ -291,7 +311,9 @@ const RightBar = ({
             ))}
           </ul>
         ) : (
-          <div><TranslatedText>No crypto data available</TranslatedText></div>
+          <div>
+            <TranslatedText>No crypto data available</TranslatedText>
+          </div>
         )}
       </div>
 
@@ -299,10 +321,14 @@ const RightBar = ({
 
       <div className="mt-17 border border-gray-300 dark:border-zinc-600 rounded-3xl p-4 bg-gray-50 dark:bg-[#262335] transition-colors duration-300">
         <div className="flex justify-center items-center mb-4 font-bold ">
-          <span><TranslatedText>Related NEWS</TranslatedText></span>
+          <span>
+            <TranslatedText>Related NEWS</TranslatedText>
+          </span>
         </div>
         {loading ? (
-          <div><TranslatedText>Loading...</TranslatedText></div>
+          <div>
+            <TranslatedText>Loading...</TranslatedText>
+          </div>
         ) : Array.isArray(news) && news.length > 0 ? (
           <ul className="list-disc gap-2 pl-4">
             {news.slice(0, 3).map((article, index) => (
@@ -319,7 +345,9 @@ const RightBar = ({
             ))}
           </ul>
         ) : (
-          <div><TranslatedText>No news available</TranslatedText></div>
+          <div>
+            <TranslatedText>No news available</TranslatedText>
+          </div>
         )}
         <div style={{ color: "#1d9bf0" }}>
           <a
@@ -335,9 +363,11 @@ const RightBar = ({
       <div className="mt-4 border border-gray-300 dark:border-zinc-600 rounded-3xl p-4 bg-gray-50 dark:bg-[#262335] transition-colors duration-300">
         <div className="flex justify-between items-center mb-4">
           <div className="flex font-bold">
-            <span><TranslatedText>Who to follow</TranslatedText></span>
+            <span>
+              <TranslatedText>Who to follow</TranslatedText>
+            </span>
           </div>
-          <button 
+          <button
             onClick={refreshSuggestions}
             className="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors"
           >
@@ -357,34 +387,45 @@ const RightBar = ({
           suggestedUsers.map((user) => (
             <div key={user._id} className="flex items-center mb-4">
               <div className="w-10 h-10 rounded-full overflow-hidden">
-                <img 
+                <img
                   src={generateConsistentAvatar(user.username)}
                   alt={user.username}
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="ml-3 flex flex-col">
-                <span className="font-medium text-gray-900 dark:text-white">@{user.username}</span>
-                <span className="text-gray-500 dark:text-stone-400 text-sm">
-                  {user.email}
+                <span className="font-medium text-gray-900 dark:text-white">
+                  @{user.username}
                 </span>
               </div>
               <div className="ml-auto flex items-center gap-2">
-                <button 
+                <button
                   type="button"
                   onClick={(e) => handleFollowToggle(user._id, e)}
                   disabled={processingUsers[user._id]}
                   className={`rounded-full px-4 py-1 text-sm font-bold transition-colors duration-200 ${
-                    processingUsers[user._id] 
-                      ? 'bg-gray-400 cursor-not-allowed text-white' 
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    processingUsers[user._id]
+                      ? "bg-gray-400 cursor-not-allowed text-white"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
                   }`}
                 >
                   {processingUsers[user._id] ? (
                     <span className="flex items-center gap-1">
                       <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       <TranslatedText>Following...</TranslatedText>
                     </span>

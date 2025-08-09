@@ -38,11 +38,21 @@ export default function RootLayout({
       case "Messages":
         return <Messages key={messageKey} selectedUser={selectedMessageUser} />;
       case "Notification":
-        return <div><TranslatedText>Notification Content</TranslatedText></div>;
+        return (
+          <div>
+            <TranslatedText>Notification Content</TranslatedText>
+          </div>
+        );
       case "Bookmarks":
-        return <div><TranslatedText>Bookmarks Content</TranslatedText></div>;
+        return (
+          <div>
+            <TranslatedText>Bookmarks Content</TranslatedText>
+          </div>
+        );
       case "Profile":
-        return <FollowersList onBack={() => handleMenuClick(<Home />, "Home")} />;
+        return (
+          <FollowersList onBack={() => handleMenuClick(<Home />, "Home")} />
+        );
       case "More":
         return <More />;
       case "Privacy":
@@ -68,8 +78,8 @@ export default function RootLayout({
 
   // Restore page state from localStorage on component mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedPage = localStorage.getItem('blurtext-current-page');
+    if (typeof window !== "undefined") {
+      const savedPage = localStorage.getItem("blurtext-current-page");
       const pageToLoad = savedPage || "Home";
       setCurrentPage(pageToLoad);
       setActiveContent(getPageContent(pageToLoad));
@@ -78,8 +88,8 @@ export default function RootLayout({
 
   // Save current page to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined' && currentPage) {
-      localStorage.setItem('blurtext-current-page', currentPage);
+    if (typeof window !== "undefined" && currentPage) {
+      localStorage.setItem("blurtext-current-page", currentPage);
     }
   }, [currentPage]);
 
@@ -104,19 +114,21 @@ export default function RootLayout({
         setIsLoggedIn(true);
         setUser(userInfo);
         // Dispatch user change event
-        window.dispatchEvent(new CustomEvent('userChanged', { detail: userInfo }));
+        window.dispatchEvent(
+          new CustomEvent("userChanged", { detail: userInfo })
+        );
       } else {
         setIsLoggedIn(false);
         setUser(null);
         // Dispatch user change event for logout
-        window.dispatchEvent(new CustomEvent('userChanged', { detail: null }));
+        window.dispatchEvent(new CustomEvent("userChanged", { detail: null }));
       }
     } catch (error) {
       console.error("Auth check failed:", error);
       setIsLoggedIn(false);
       setUser(null);
       // Dispatch user change event for error case
-      window.dispatchEvent(new CustomEvent('userChanged', { detail: null }));
+      window.dispatchEvent(new CustomEvent("userChanged", { detail: null }));
     } finally {
       setIsAuthChecked(true);
     }
@@ -124,9 +136,12 @@ export default function RootLayout({
 
   // Initial loading effect - shows before login, but only if not authenticated
   useEffect(() => {
-    const initialTimer = setTimeout(() => {
-      setShowInitialLoading(false);
-    }, isAuthChecked && isLoggedIn ? 500 : 2000); // Shorter delay if already logged in
+    const initialTimer = setTimeout(
+      () => {
+        setShowInitialLoading(false);
+      },
+      isAuthChecked && isLoggedIn ? 500 : 2000
+    ); // Shorter delay if already logged in
 
     return () => {
       clearTimeout(initialTimer);
@@ -142,7 +157,7 @@ export default function RootLayout({
       const timer = setTimeout(() => {
         setIsLoading(false);
       }, 500); // Reduced from 2000ms to prevent long delays
-      
+
       return () => clearTimeout(timer);
     } else {
       setIsLoading(false);
@@ -168,14 +183,14 @@ export default function RootLayout({
     // Clear selected message user when navigating to Messages normally (not via message button)
     if (pageName === "Messages") {
       setSelectedMessageUser(null);
-      setMessageKey(prev => prev + 1);
+      setMessageKey((prev) => prev + 1);
     }
     // Clear selected message user when navigating away from Messages
     if (pageName && pageName !== "Messages") {
       setSelectedMessageUser(null);
-      setMessageKey(prev => prev + 1);
+      setMessageKey((prev) => prev + 1);
     }
-    
+
     setIsLoading(true);
     setTimeout(() => {
       setActiveContent(content);
@@ -189,18 +204,21 @@ export default function RootLayout({
   // Function to navigate to Messages with a specific user selected
   const handleMessageUser = useCallback((user: any) => {
     console.log("🔔 handleMessageUser called with:", user);
-    
+
     // Force clear any existing selected user first
     setSelectedMessageUser(null);
-    setMessageKey(prev => prev + 1); // Force new component instance
-    
+    setMessageKey((prev) => prev + 1); // Force new component instance
+
     // Set the new user after a brief delay to ensure state is cleared
     setTimeout(() => {
       setSelectedMessageUser(user);
       setIsLoading(true);
-      
+
       setTimeout(() => {
-        console.log("🔔 Navigating to Messages with selectedMessageUser:", user);
+        console.log(
+          "🔔 Navigating to Messages with selectedMessageUser:",
+          user
+        );
         setCurrentPage("Messages");
         setActiveContent(getPageContent("Messages"));
         setIsLoading(false);
@@ -215,7 +233,9 @@ export default function RootLayout({
       // Set user data directly from login response
       setUser(userData);
       // Dispatch user change event
-      window.dispatchEvent(new CustomEvent('userChanged', { detail: userData }));
+      window.dispatchEvent(
+        new CustomEvent("userChanged", { detail: userData })
+      );
     } else {
       // Fallback to checking auth status
       setTimeout(() => {
@@ -240,7 +260,7 @@ export default function RootLayout({
         setUser(null);
         setIsAuthChecked(true);
         // Dispatch user change event
-        window.dispatchEvent(new CustomEvent('userChanged', { detail: null }));
+        window.dispatchEvent(new CustomEvent("userChanged", { detail: null }));
       } else {
         console.error("Logout failed");
         setIsLoggedIn(false);
@@ -327,38 +347,38 @@ export default function RootLayout({
   // Show main app only when logged in and auth is checked
   if (isLoggedIn && isAuthChecked) {
     return (
-    <html lang="en">
-      <head>
-        <title>BlurText - Anonymous Social Platform</title>
-        <meta
-          name="description"
-          content="Anonymous social interaction through unique credentials. Share thoughts freely without revealing your identity."
-        />
-        <link rel="icon" href="icons/icone.png" />
-      </head>
-      <body>
-        <ThemeProvider>
-          <TranslationProvider>
-            <div className="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl xxl:max-w-screen-xxl mx-auto flex justify-between bg-white dark:bg-[#262335] text-black dark:text-[#ededed] transition-colors duration-300">
-              <div className="px-3 xsm:px-4 xxl:px-8">
-                <LeftBar
-                  onMenuClick={handleMenuClick}
-                  onLogout={handleLogout}
-                  user={user}
-                  currentPage={currentPage}
-                />
+      <html lang="en">
+        <head>
+          <title>BlurText - Anonymous Social Platform</title>
+          <meta
+            name="description"
+            content="Anonymous social interaction through unique credentials. Share thoughts freely without revealing your identity."
+          />
+          <link rel="icon" href="icons/icone.png" />
+        </head>
+        <body>
+          <ThemeProvider>
+            <TranslationProvider>
+              <div className="max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl xxl:max-w-screen-xxl mx-auto flex justify-between bg-white dark:bg-[#262335] text-black dark:text-[#ededed] transition-colors duration-300 h-screen overflow-hidden">
+                <div className="px-3 xsm:px-4 xxl:px-8 sticky top-0 h-screen overflow-y-auto scrollable-content">
+                  <LeftBar
+                    onMenuClick={handleMenuClick}
+                    onLogout={handleLogout}
+                    user={user}
+                    currentPage={currentPage}
+                  />
+                </div>
+                <div className="flex-1 lg:min-w-[600px] border-x-[1px] border-gray-200 dark:border-borderGray h-screen overflow-y-auto scrollable-content">
+                  {activeContent}
+                </div>
+                <div className="hidden ml-4 md:ml-8 lg:block lg:w-80 xl:w-96 sticky top-0 h-screen overflow-y-auto scrollable-content">
+                  <RightBar onMenuClick={handleMenuClick} />
+                </div>
               </div>
-              <div className="flex-1 lg:min-w-[600px] border-x-[1px] border-gray-200 dark:border-borderGray">
-                {activeContent}
-              </div>
-              <div className="hidden ml-4 md:ml-8 h-screen lg:flex flex-1">
-                <RightBar onMenuClick={handleMenuClick} />
-              </div>
-            </div>
-          </TranslationProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+            </TranslationProvider>
+          </ThemeProvider>
+        </body>
+      </html>
     );
   }
 
