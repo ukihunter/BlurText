@@ -16,40 +16,51 @@ interface FollowersListProps {
 }
 
 const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<"followers" | "following">("followers");
+  const [activeTab, setActiveTab] = useState<"followers" | "following">(
+    "followers"
+  );
   const [followers, setFollowers] = useState<FollowerUser[]>([]);
   const [following, setFollowing] = useState<FollowerUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [followingStates, setFollowingStates] = useState<{ [key: string]: boolean }>({});
-  const [processingFollow, setProcessingFollow] = useState<{ [key: string]: boolean }>({});
-  const [processingUnfollow, setProcessingUnfollow] = useState<{ [key: string]: boolean }>({});
-  const [dataLoaded, setDataLoaded] = useState({ followers: false, following: false });
+  const [followingStates, setFollowingStates] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [processingFollow, setProcessingFollow] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [processingUnfollow, setProcessingUnfollow] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [dataLoaded, setDataLoaded] = useState({
+    followers: false,
+    following: false,
+  });
 
   // Check which followers we're already following
   const updateFollowingStates = (followersList: FollowerUser[]) => {
     // Get current following usernames - handle case where following might be empty initially
-    const followingUsernames = following.map(user => user.username);
+    const followingUsernames = following.map((user) => user.username);
     const states: { [key: string]: boolean } = {};
-    
-    followersList.forEach(follower => {
+
+    followersList.forEach((follower) => {
       // Check if this follower is in our following list
       states[follower.id] = followingUsernames.includes(follower.username);
     });
-    
+
     console.log("Updating following states:", {
       followersCount: followersList.length,
       followingCount: following.length,
       followingUsernames,
-      states
+      states,
     });
-    
+
     setFollowingStates(states);
   };
 
   // Handle follow back functionality
   const handleFollowBack = async (user: FollowerUser) => {
     try {
-      setProcessingFollow(prev => ({ ...prev, [user.id]: true }));
+      setProcessingFollow((prev) => ({ ...prev, [user.id]: true }));
 
       const response = await fetch("/api/follow", {
         method: "POST",
@@ -61,19 +72,19 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Add user to following list first
-        const updatedFollowing = following.find(f => f.id === user.id) 
-          ? following 
+        const updatedFollowing = following.find((f) => f.id === user.id)
+          ? following
           : [...following, user];
-        
-        if (!following.find(f => f.id === user.id)) {
+
+        if (!following.find((f) => f.id === user.id)) {
           setFollowing(updatedFollowing);
         }
-        
+
         // Update following states immediately based on the new following list
-        setFollowingStates(prev => ({ ...prev, [user.id]: true }));
-        
+        setFollowingStates((prev) => ({ ...prev, [user.id]: true }));
+
         console.log("Follow back successful:", data.message);
       } else {
         const errorData = await response.json();
@@ -82,14 +93,14 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
     } catch (error) {
       console.error("Error following back:", error);
     } finally {
-      setProcessingFollow(prev => ({ ...prev, [user.id]: false }));
+      setProcessingFollow((prev) => ({ ...prev, [user.id]: false }));
     }
   };
 
   // Handle unfollow functionality
   const handleUnfollow = async (user: FollowerUser) => {
     try {
-      setProcessingUnfollow(prev => ({ ...prev, [user.id]: true }));
+      setProcessingUnfollow((prev) => ({ ...prev, [user.id]: true }));
 
       const response = await fetch("/api/unfollow", {
         method: "DELETE",
@@ -101,13 +112,13 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Remove user from following list immediately
-        setFollowing(prev => prev.filter(f => f.id !== user.id));
-        
+        setFollowing((prev) => prev.filter((f) => f.id !== user.id));
+
         // Update following states immediately
-        setFollowingStates(prev => ({ ...prev, [user.id]: false }));
-        
+        setFollowingStates((prev) => ({ ...prev, [user.id]: false }));
+
         console.log("Unfollow successful:", data.message);
       } else {
         const errorData = await response.json();
@@ -116,7 +127,7 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
     } catch (error) {
       console.error("Error unfollowing:", error);
     } finally {
-      setProcessingUnfollow(prev => ({ ...prev, [user.id]: false }));
+      setProcessingUnfollow((prev) => ({ ...prev, [user.id]: false }));
     }
   };
 
@@ -124,11 +135,12 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
   const fetchData = async (type: "followers" | "following") => {
     try {
       setIsLoading(true);
-      
+
       // Use the correct existing API endpoints
-      const endpoint = type === "followers" ? "/api/users/followers" : "/api/users/followed";
+      const endpoint =
+        type === "followers" ? "/api/users/followers" : "/api/users/followed";
       const response = await fetch(endpoint);
-      
+
       if (response.ok) {
         const data = await response.json();
         if (type === "followers") {
@@ -140,11 +152,11 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
             displayName: user.displayName || user.username,
             avatar: generateConsistentAvatar(user.username),
             isOnline: user.isOnline || Math.random() > 0.5,
-            followedAt: user.followedAt || user.joinedAt
+            followedAt: user.followedAt || user.joinedAt,
           }));
           setFollowers(mappedFollowers);
-          setDataLoaded(prev => ({ ...prev, followers: true }));
-          
+          setDataLoaded((prev) => ({ ...prev, followers: true }));
+
           // Don't update following states here - wait for both datasets to load
         } else {
           // Map the following data
@@ -155,10 +167,10 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
             displayName: user.displayName || user.username,
             avatar: generateConsistentAvatar(user.username),
             isOnline: user.isOnline || Math.random() > 0.5,
-            followedAt: user.followedAt || user.joinedAt
+            followedAt: user.followedAt || user.joinedAt,
           }));
           setFollowing(mappedFollowing);
-          setDataLoaded(prev => ({ ...prev, following: true }));
+          setDataLoaded((prev) => ({ ...prev, following: true }));
         }
       } else {
         console.error(`Failed to fetch ${type}:`, response.status);
@@ -174,12 +186,9 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
   useEffect(() => {
     const fetchAllData = async () => {
       // Fetch both followers and following in parallel for accurate counts
-      await Promise.all([
-        fetchData("followers"),
-        fetchData("following")
-      ]);
+      await Promise.all([fetchData("followers"), fetchData("following")]);
     };
-    
+
     fetchAllData();
   }, []); // Only run on mount
 
@@ -263,9 +272,13 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
             </div>
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {activeTab === "followers" ? (
-                <TranslatedText>When people follow you, they'll show up here</TranslatedText>
+                <TranslatedText>
+                  When people follow you, they'll show up here
+                </TranslatedText>
               ) : (
-                <TranslatedText>Find people to follow and connect with them</TranslatedText>
+                <TranslatedText>
+                  Find people to follow and connect with them
+                </TranslatedText>
               )}
             </p>
           </div>
@@ -294,7 +307,9 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
                     </p>
                     {user.followedAt && (
                       <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {activeTab === "followers" ? "Followed you " : "Following since "}
+                        {activeTab === "followers"
+                          ? "Followed you "
+                          : "Following since "}
                         {new Date(user.followedAt).toLocaleDateString()}
                       </p>
                     )}
@@ -307,16 +322,31 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
                       onClick={() => handleFollowBack(user)}
                       disabled={processingFollow[user.id]}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        processingFollow[user.id] 
-                          ? 'bg-gray-400 cursor-not-allowed text-white' 
-                          : 'bg-green-500 hover:bg-green-600 text-white'
+                        processingFollow[user.id]
+                          ? "bg-gray-400 cursor-not-allowed text-white"
+                          : "bg-green-500 hover:bg-green-600 text-white"
                       }`}
                     >
                       {processingFollow[user.id] ? (
                         <span className="flex items-center gap-1">
-                          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <svg
+                            className="animate-spin h-3 w-3"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
                           </svg>
                           <TranslatedText>Following...</TranslatedText>
                         </span>
@@ -325,30 +355,45 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
                       )}
                     </button>
                   )}
-                  
+
                   {/* Show Following status for followers we're already following */}
                   {activeTab === "followers" && followingStates[user.id] && (
                     <span className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm font-medium">
                       <TranslatedText>Following</TranslatedText>
                     </span>
                   )}
-                  
+
                   {/* Show Unfollow button only in Following tab */}
                   {activeTab === "following" && (
                     <button
                       onClick={() => handleUnfollow(user)}
                       disabled={processingUnfollow[user.id]}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        processingUnfollow[user.id] 
-                          ? 'bg-gray-400 cursor-not-allowed text-white' 
-                          : 'bg-red-500 hover:bg-red-600 text-white'
+                        processingUnfollow[user.id]
+                          ? "bg-gray-400 cursor-not-allowed text-white"
+                          : "bg-red-500 hover:bg-red-600 text-white"
                       }`}
                     >
                       {processingUnfollow[user.id] ? (
                         <span className="flex items-center gap-1">
-                          <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <svg
+                            className="animate-spin h-3 w-3"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
                           </svg>
                           <TranslatedText>Unfollowing...</TranslatedText>
                         </span>

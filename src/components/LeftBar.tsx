@@ -10,7 +10,7 @@ import { generateConsistentAvatar } from "@/utils/avatarUtils";
 import Home from "@/content/Home";
 import Messages from "@/content/Messages";
 import Explore from "@/content/Explore";
-import FollowersList from "./FollowersList";
+import Profile from "@/content/Profile";
 
 const menulist = [
   {
@@ -45,13 +45,13 @@ const menulist = [
   },
   {
     id: 4,
-    name: "Messages",
+    name: "Ghosts",
     content: (
       <div>
         <Messages />
       </div>
     ),
-    icon: "message.svg",
+    icon: "ghost.svg",
   },
   {
     id: 5,
@@ -66,7 +66,7 @@ const menulist = [
   {
     id: 9,
     name: "Profile",
-    content: <FollowersList onBack={() => {}} />,
+    content: <Profile />,
     icon: "profile.svg",
   },
   {
@@ -120,15 +120,15 @@ const LeftBar = ({
   useEffect(() => {
     const handleNavigateToExplore = () => {
       // Find explore menu item and trigger its click
-      const exploreMenuItem = menulist.find(item => item.name === "Explore");
+      const exploreMenuItem = menulist.find((item) => item.name === "Explore");
       if (exploreMenuItem) {
         onMenuClick(exploreMenuItem.content, exploreMenuItem.name);
       }
     };
 
-    window.addEventListener('navigateToExplore', handleNavigateToExplore);
+    window.addEventListener("navigateToExplore", handleNavigateToExplore);
     return () => {
-      window.removeEventListener('navigateToExplore', handleNavigateToExplore);
+      window.removeEventListener("navigateToExplore", handleNavigateToExplore);
     };
   }, [onMenuClick]);
 
@@ -151,9 +151,9 @@ const LeftBar = ({
                 key={item.id}
                 onClick={() => onMenuClick(item.content, item.name)}
                 className={`flex items-center gap-2 p-2 rounded-md cursor-pointer font-bold transition-all duration-200 ease-in-out ${
-                  isActive 
-                    ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                  isActive
+                    ? "bg-blue-500 text-white hover:bg-blue-600"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 <Icon name={item.icon} width={24} height={24} />
@@ -175,7 +175,7 @@ const LeftBar = ({
             type="button"
             className="hidden xxl:block bg-blue-500 text-white rounded-full px-20 py-2 mt-10 font-bold text-sm hover:bg-blue-600 transition-all duration-200 ease-in-out"
           >
-            <TranslatedText>Post</TranslatedText>
+            <TranslatedText>whispers</TranslatedText>
           </button>
         </Link>
       </div>

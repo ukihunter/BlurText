@@ -60,6 +60,46 @@ const Icon: React.FC<IconProps> = ({
         <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
       </svg>
     ),
+    "ghost.svg": (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="none"
+        className={className}
+      >
+        {/* Ghost body with smooth curves */}
+        <path
+          d="M12 2C8.13401 2 5 5.13401 5 9V16.5C5 17.3284 5.67157 18 6.5 18C7.32843 18 8 17.3284 8 16.5V15.5C8 14.6716 8.67157 14 9.5 14C10.3284 14 11 14.6716 11 15.5V17C11 17.5523 11.4477 18 12 18C12.5523 18 13 17.5523 13 17V15.5C13 14.6716 13.6716 14 14.5 14C15.3284 14 16 14.6716 16 15.5V16.5C16 17.3284 16.6716 18 17.5 18C18.3284 18 19 17.3284 19 16.5V9C19 5.13401 15.866 2 12 2Z"
+          fill="currentColor"
+          fillOpacity="0.9"
+        />
+
+        {/* Ghost eyes - larger and more expressive */}
+        <ellipse cx="9.5" cy="8.5" rx="1.8" ry="2" fill="white" />
+        <ellipse cx="14.5" cy="8.5" rx="1.8" ry="2" fill="white" />
+
+        {/* Eye pupils for more character */}
+        <circle cx="9.5" cy="8.8" r="0.8" fill="#1f2937" />
+        <circle cx="14.5" cy="8.8" r="0.8" fill="#1f2937" />
+
+        {/* Small highlight in eyes */}
+        <circle cx="9.2" cy="8.5" r="0.3" fill="white" />
+        <circle cx="14.2" cy="8.5" r="0.3" fill="white" />
+
+        {/* Mouth - small oval for friendly look */}
+        <ellipse cx="12" cy="12" rx="0.8" ry="1.2" fill="white" />
+        <ellipse cx="12" cy="12" rx="0.5" ry="0.8" fill="#1f2937" />
+
+        {/* Floating effect - subtle shadow/glow */}
+        <path
+          d="M6 19C6 19.5523 6.44772 20 7 20H17C17.5523 20 18 19.5523 18 19C18 18.4477 17.5523 18 17 18H7C6.44772 18 6 18.4477 6 19Z"
+          fill="currentColor"
+          fillOpacity="0.2"
+        />
+      </svg>
+    ),
     "bookmark.svg": (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -113,6 +153,41 @@ const Icon: React.FC<IconProps> = ({
         className={`fill-current ${className}`}
       >
         <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+      </svg>
+    ),
+    "cross.svg": (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={width}
+        height={height}
+        viewBox="0 0 24 24"
+        fill="none"
+        className={className}
+      >
+        {/* Enhanced cross/X symbol with better proportions */}
+        <g
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {/* First diagonal line */}
+          <path d="M17.5 6.5L6.5 17.5" opacity="0.9" />
+          {/* Second diagonal line */}
+          <path d="M6.5 6.5L17.5 17.5" opacity="0.9" />
+        </g>
+
+        {/* Optional: Add subtle shadow effect */}
+        <g
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.1"
+        >
+          <path d="M18 7L7 18" />
+          <path d="M7 7L18 18" />
+        </g>
       </svg>
     ),
   };

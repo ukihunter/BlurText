@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 
@@ -15,8 +16,16 @@ interface User {
 const Explore = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [followingStates, setFollowingStates] = useState<{ [key: string]: boolean }>({});
+  const [followingStates, setFollowingStates] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Fix hydration issues by only rendering after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Check current user for user switching detection
   const checkCurrentUser = async () => {
@@ -27,7 +36,7 @@ const Explore = () => {
         return data.user?.id || null;
       }
       return null;
-    } catch (error) {
+    } catch {
       return null;
     }
   };
@@ -37,9 +46,9 @@ const Explore = () => {
     try {
       setIsLoading(true);
       console.log("Fetching unfollowed users...");
-      
+
       const response = await fetch("/api/users/unfollowed?limit=20");
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log("Unfollowed users response:", data);
@@ -63,24 +72,37 @@ const Explore = () => {
   };
 
   // Handle follow/unfollow
-  const handleFollowToggle = async (userId: string, username: string, event?: React.MouseEvent) => {
-    console.log("🔄 Explore: Follow button clicked for user:", username, userId);
-    
+  const handleFollowToggle = async (
+    userId: string,
+    username: string,
+    event?: React.MouseEvent
+  ) => {
+    console.log(
+      "🔄 Explore: Follow button clicked for user:",
+      username,
+      userId
+    );
+
     // Prevent any default behavior and event bubbling
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
-    
+
     const isCurrentlyFollowing = followingStates[userId];
     console.log("📊 Explore: Current following state:", isCurrentlyFollowing);
-    
+
     try {
       const endpoint = isCurrentlyFollowing ? "/api/unfollow" : "/api/follow";
       const method = isCurrentlyFollowing ? "DELETE" : "POST";
-      
-      console.log("🌐 Explore: Making API call to:", endpoint, "with method:", method);
-      
+
+      console.log(
+        "🌐 Explore: Making API call to:",
+        endpoint,
+        "with method:",
+        method
+      );
+
       const response = await fetch(endpoint, {
         method,
         headers: {
@@ -92,30 +114,35 @@ const Explore = () => {
       console.log("✅ Explore: API response status:", response.status);
 
       if (response.ok) {
-        console.log("🎉 Explore: Follow/unfollow successful, triggering full page refresh...");
-        
+        console.log(
+          "🎉 Explore: Follow/unfollow successful, triggering full page refresh..."
+        );
+
         // Trigger full page refresh
         window.location.reload();
-        
+
         console.log("✅ Explore: Page refresh triggered");
       } else {
-        console.error("❌ Explore: Failed to toggle follow status:", response.status);
+        console.error(
+          "❌ Explore: Failed to toggle follow status:",
+          response.status
+        );
       }
     } catch (error) {
       console.error("💥 Explore: Error toggling follow status:", error);
     }
-    
+
     console.log("🏁 Explore: handleFollowToggle completed");
   };
 
   useEffect(() => {
     fetchSuggestedUsers();
-    
+
     // Listen for user change events
-    const handleUserChange = (event: any) => {
-      const userData = event.detail;
+    const handleUserChange = (event: Event) => {
+      const userData = (event as CustomEvent).detail;
       const newUserId = userData?.id || null;
-      
+
       if (newUserId !== currentUserId) {
         setCurrentUserId(newUserId);
         setFollowingStates({}); // Reset following states
@@ -129,17 +156,17 @@ const Explore = () => {
       }
     };
 
-    window.addEventListener('userChanged', handleUserChange);
+    window.addEventListener("userChanged", handleUserChange);
 
     // Initial user check
     checkCurrentUser().then(setCurrentUserId);
 
     return () => {
-      window.removeEventListener('userChanged', handleUserChange);
+      window.removeEventListener("userChanged", handleUserChange);
     };
   }, [currentUserId]);
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-gray-500 dark:text-gray-400">
@@ -163,7 +190,9 @@ const Explore = () => {
       {users.length === 0 ? (
         <div className="text-center p-8">
           <p className="text-gray-500 dark:text-gray-400">
-            <TranslatedText>No new users to discover at the moment</TranslatedText>
+            <TranslatedText>
+              No new users to discover at the moment
+            </TranslatedText>
           </p>
         </div>
       ) : (
@@ -175,9 +204,11 @@ const Explore = () => {
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <img
+                  <Image
                     src={generateConsistentAvatar(user.username)}
                     alt={user.username}
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-full"
                   />
                   {user.isOnline && (
@@ -198,8 +229,14 @@ const Explore = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     @{user.username.toLowerCase()}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    <TranslatedText>Joined</TranslatedText> {new Date(user.joinedAt).toLocaleDateString()}
+                  <p
+                    className="text-xs text-gray-400 dark:text-gray-500"
+                    suppressHydrationWarning
+                  >
+                    <TranslatedText>Joined</TranslatedText>{" "}
+                    {mounted
+                      ? new Date(user.joinedAt).getFullYear()
+                      : new Date().getFullYear()}
                   </p>
                 </div>
               </div>
