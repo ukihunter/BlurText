@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
+import UserFollows from "@/models/UserFollows";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +39,14 @@ export async function POST(request: NextRequest) {
     });
 
     await newUser.save();
+
+    // Create UserFollows entry for the new user
+    const userFollows = new UserFollows({
+      username: username,
+      followedUsers: [], // Start with empty array
+    });
+
+    await userFollows.save();
 
     return NextResponse.json(
       {

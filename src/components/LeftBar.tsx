@@ -6,8 +6,11 @@ import More from "@/options/More";
 import Icon from "./Icon";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TranslatedText } from "@/hooks/useTranslation";
+import { generateConsistentAvatar } from "@/utils/avatarUtils";
 import Home from "@/content/Home";
 import Messages from "@/content/Messages";
+import Explore from "@/content/Explore";
+import FollowersList from "./FollowersList";
 
 const menulist = [
   {
@@ -25,7 +28,7 @@ const menulist = [
     name: "Explore",
     content: (
       <div>
-        <TranslatedText>Explore Content</TranslatedText>
+        <Explore />
       </div>
     ),
     icon: "explore.svg",
@@ -63,11 +66,7 @@ const menulist = [
   {
     id: 9,
     name: "Profile",
-    content: (
-      <div>
-        <TranslatedText>Profile Content</TranslatedText>
-      </div>
-    ),
+    content: <FollowersList onBack={() => {}} />,
     icon: "profile.svg",
   },
   {
@@ -82,13 +81,15 @@ const LeftBar = ({
   onMenuClick,
   onLogout,
   user,
+  currentPage,
 }: {
-  onMenuClick: (content: React.ReactNode) => void;
+  onMenuClick: (content: React.ReactNode, pageName?: string) => void;
   onLogout: () => void;
   user?: {
     username: string;
     id: string;
   } | null;
+  currentPage: string;
 }) => {
   const { theme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -115,6 +116,22 @@ const LeftBar = ({
     };
   }, []);
 
+  // Listen for navigate to explore events
+  useEffect(() => {
+    const handleNavigateToExplore = () => {
+      // Find explore menu item and trigger its click
+      const exploreMenuItem = menulist.find(item => item.name === "Explore");
+      if (exploreMenuItem) {
+        onMenuClick(exploreMenuItem.content, exploreMenuItem.name);
+      }
+    };
+
+    window.addEventListener('navigateToExplore', handleNavigateToExplore);
+    return () => {
+      window.removeEventListener('navigateToExplore', handleNavigateToExplore);
+    };
+  }, [onMenuClick]);
+
   return (
     <div className="h-screen sticky top-0 bg-white dark:bg-[#262335] text-black dark:text-white flex flex-col justify-between pt-2 pb-8 transition-colors duration-300">
       <div>
@@ -127,18 +144,25 @@ const LeftBar = ({
           />
         </Link>
         <div className="flex flex-col mt-10 gap-5">
-          {menulist.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => onMenuClick(item.content)}
-              className="flex items-center gap-2 p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md cursor-pointer font-bold transition-all duration-200 ease-in-out"
-            >
-              <Icon name={item.icon} width={24} height={24} />
-              <span className="hidden xxl:inline text-sm">
-                <TranslatedText>{item.name}</TranslatedText>
-              </span>
-            </div>
-          ))}
+          {menulist.map((item) => {
+            const isActive = currentPage === item.name;
+            return (
+              <div
+                key={item.id}
+                onClick={() => onMenuClick(item.content, item.name)}
+                className={`flex items-center gap-2 p-2 rounded-md cursor-pointer font-bold transition-all duration-200 ease-in-out ${
+                  isActive 
+                    ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Icon name={item.icon} width={24} height={24} />
+                <span className="hidden xxl:inline text-sm">
+                  <TranslatedText>{item.name}</TranslatedText>
+                </span>
+              </div>
+            );
+          })}
         </div>
         <Link
           href="/"
@@ -159,7 +183,7 @@ const LeftBar = ({
         <div className="flex items-center justify-between mt-6 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full cursor-pointer transition-all duration-200 ease-in-out">
           <div className="flex items-center gap-4 px-2 py-1">
             <div className="w-8 h-8 relative rounded-full overflow-hidden">
-              <img src="https://avatar.iran.liara.run/public/40" alt="" />
+              <img src={generateConsistentAvatar(username)} alt={displayName} />
             </div>
             <div className="hidden xxl:flex flex-col font-bold">
               <span className="text-sm font-bold text-gray-900 dark:text-white capitalize">
