@@ -133,7 +133,7 @@ const LeftBar = ({
   }, [onMenuClick]);
 
   return (
-    <div className="h-screen sticky top-0 bg-white dark:bg-[#262335] text-black dark:text-white flex flex-col justify-between pt-2 pb-8 transition-colors duration-300">
+    <div className="h-screen sticky top-0 bg-white dark:bg-[#262335] text-black dark:text-white flex flex-col justify-between pt-2 pb-10 transition-colors duration-300">
       <div>
         <Link href="/">
           <img
@@ -143,14 +143,14 @@ const LeftBar = ({
             height={150}
           />
         </Link>
-        <div className="flex flex-col mt-10 gap-5">
+        <div className="flex flex-col mt-20 gap-10">
           {menulist.map((item) => {
             const isActive = currentPage === item.name;
             return (
               <div
                 key={item.id}
                 onClick={() => onMenuClick(item.content, item.name)}
-                className={`flex items-center gap-2 p-2 rounded-md cursor-pointer font-bold transition-all duration-200 ease-in-out ${
+                className={`flex items-center gap-4 p-3 rounded-md cursor-pointer font-bold transition-all duration-200 ease-in-out ${
                   isActive
                     ? "bg-blue-500 text-white hover:bg-blue-600"
                     : "hover:bg-gray-200 dark:hover:bg-gray-700"
