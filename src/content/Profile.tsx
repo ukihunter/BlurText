@@ -27,6 +27,7 @@ const Profile: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showFollowersList, setShowFollowersList] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Fix hydration issues by only rendering after mount
@@ -114,8 +115,22 @@ const Profile: React.FC = () => {
     fetchProfileStats();
   };
 
+  const handleEditProfile = () => {
+    setShowEditProfile(true);
+  };
+
+  const handleBackFromEdit = () => {
+    setShowEditProfile(false);
+    // Refresh user data when coming back from edit
+    fetchUserData();
+  };
+
   if (showFollowersList) {
     return <FollowersList onBack={handleBackFromFollowers} />;
+  }
+
+  if (showEditProfile) {
+    return <EditProfile user={user} onBack={handleBackFromEdit} />;
   }
 
   if (!mounted || isLoading) {
@@ -223,7 +238,10 @@ const Profile: React.FC = () => {
 
               {/* Privacy Controls */}
               <div className="flex flex-col gap-3">
-                <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+                <button
+                  onClick={handleEditProfile}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                >
                   <TranslatedText>Edit profile</TranslatedText>
                 </button>
                 <div className="text-xs text-gray-500 dark:text-gray-500 text-center">
@@ -342,7 +360,7 @@ const Profile: React.FC = () => {
               {/* Anonymous Empty State */}
 
               <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                <TranslatedText>Your whispers remain silent</TranslatedText>
+                <TranslatedText>Your whispers Remain silent</TranslatedText>
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg leading-relaxed">
                 <TranslatedText>
@@ -372,6 +390,445 @@ const Profile: React.FC = () => {
                 </TranslatedText>
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// EditProfile Component
+interface EditProfileProps {
+  user: User | null;
+  onBack: () => void;
+}
+
+const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
+  const [formData, setFormData] = useState({
+    displayName: user?.displayName || "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [anonymitySettings, setAnonymitySettings] = useState({
+    hideOnlineStatus: false,
+    enableDisappearingMessages: false,
+    autoDeleteMessages: false,
+    blockScreenshots: false,
+    enableTwoFactor: false,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleAnonymityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setAnonymitySettings((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+  };
+
+  const handlePasswordChange = async () => {
+    if (formData.newPassword !== formData.confirmPassword) {
+      setMessage({ type: "error", text: "New passwords do not match" });
+      return;
+    }
+
+    if (formData.newPassword.length < 6) {
+      setMessage({
+        type: "error",
+        text: "Password must be at least 6 characters",
+      });
+      return;
+    }
+
+    if (!formData.currentPassword) {
+      setMessage({
+        type: "error",
+        text: "Current password is required",
+      });
+      return;
+    }
+
+    setIsPasswordLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies
+        body: JSON.stringify({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Password updated successfully" });
+        setFormData((prev) => ({
+          ...prev,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      } else {
+        setMessage({
+          type: "error",
+          text: data.message || "Failed to update password",
+        });
+      }
+    } catch (error) {
+      console.error("Password change error:", error);
+      setMessage({
+        type: "error",
+        text: "Network error. Please check your connection and try again.",
+      });
+    } finally {
+      setIsPasswordLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/auth/update-profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies
+        body: JSON.stringify({
+          displayName: formData.displayName,
+          anonymitySettings,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Profile updated successfully" });
+        // Trigger a user data refresh in the parent component
+        window.dispatchEvent(new CustomEvent("userChanged"));
+      } else {
+        setMessage({
+          type: "error",
+          text: data.message || "Failed to update profile",
+        });
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
+      setMessage({
+        type: "error",
+        text: "Network error. Please check your connection and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-[#262335]">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-white/90 dark:bg-[#262335] backdrop-blur-xl border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-xl transition-all duration-300"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-700 dark:text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  <TranslatedText>Edit Profile</TranslatedText>
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <TranslatedText>
+                    Manage your anonymous identity
+                  </TranslatedText>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveProfile}
+              disabled={isLoading}
+              className="px-6 py-2 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors"
+            >
+              <TranslatedText>
+                {isLoading ? "Saving..." : "Save"}
+              </TranslatedText>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Message */}
+        {message && (
+          <div
+            className={`mb-6 p-4 rounded-lg ${
+              message.type === "success"
+                ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+                : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        {/* Profile Information */}
+        <div className="bg-white dark:bg-[#3b3b52] rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <TranslatedText>Profile Information</TranslatedText>
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <TranslatedText>Display Name</TranslatedText>
+              </label>
+              <input
+                type="text"
+                name="displayName"
+                value={formData.displayName}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262335] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                placeholder="Your anonymous display name"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Password Security */}
+        <div className="bg-white dark:bg-[#3b3b52] rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <TranslatedText>Password Security</TranslatedText>
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <TranslatedText>Current Password</TranslatedText>
+              </label>
+              <input
+                type="password"
+                name="currentPassword"
+                value={formData.currentPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262335] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                placeholder="Enter current password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <TranslatedText>New Password</TranslatedText>
+              </label>
+              <input
+                type="password"
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262335] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                placeholder="Enter new password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <TranslatedText>Confirm New Password</TranslatedText>
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262335] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                placeholder="Confirm new password"
+              />
+            </div>
+            <button
+              onClick={handlePasswordChange}
+              disabled={
+                isPasswordLoading ||
+                !formData.currentPassword ||
+                !formData.newPassword
+              }
+              className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors"
+            >
+              <TranslatedText>
+                {isPasswordLoading ? "Updating..." : "Update Password"}
+              </TranslatedText>
+            </button>
+          </div>
+        </div>
+
+        {/* Anonymity & Privacy Settings */}
+        <div className="bg-white dark:bg-[#3b3b52] rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <TranslatedText>Anonymity & Privacy Settings</TranslatedText>
+          </h3>
+          <div className="space-y-6">
+            {/* Hide Online Status */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  <TranslatedText>Hide Online Status</TranslatedText>
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <TranslatedText>
+                    Others won&apos;t see when you&apos;re online
+                  </TranslatedText>
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="hideOnlineStatus"
+                  checked={anonymitySettings.hideOnlineStatus}
+                  onChange={handleAnonymityChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Disappearing Messages */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  <TranslatedText>Disappearing Messages</TranslatedText>
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <TranslatedText>
+                    Messages auto-delete after being read
+                  </TranslatedText>
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="enableDisappearingMessages"
+                  checked={anonymitySettings.enableDisappearingMessages}
+                  onChange={handleAnonymityChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Auto-Delete Messages */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  <TranslatedText>Auto-Delete Messages</TranslatedText>
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <TranslatedText>
+                    Automatically delete messages after 30 days
+                  </TranslatedText>
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="autoDeleteMessages"
+                  checked={anonymitySettings.autoDeleteMessages}
+                  onChange={handleAnonymityChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Block Screenshots */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  <TranslatedText>Block Screenshots</TranslatedText>
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <TranslatedText>
+                    Prevent screenshots in sensitive areas
+                  </TranslatedText>
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="blockScreenshots"
+                  checked={anonymitySettings.blockScreenshots}
+                  onChange={handleAnonymityChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Two-Factor Authentication */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  <TranslatedText>Two-Factor Authentication</TranslatedText>
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <TranslatedText>
+                    Add extra security to your account
+                  </TranslatedText>
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="enableTwoFactor"
+                  checked={anonymitySettings.enableTwoFactor}
+                  onChange={handleAnonymityChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Account Actions */}
+        <div className="bg-white dark:bg-[#3b3b52] rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <TranslatedText>Account Actions</TranslatedText>
+          </h3>
+          <div className="space-y-4">
+            <button className="w-full px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors">
+              <TranslatedText>Delete Account Permanently</TranslatedText>
+            </button>
           </div>
         </div>
       </div>
