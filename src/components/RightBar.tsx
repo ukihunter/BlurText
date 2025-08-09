@@ -258,20 +258,20 @@ const RightBar = ({
       <div className="mt-4 border border-gray-300 dark:border-zinc-600 rounded-3xl p-4 bg-gray-50 dark:bg-[#262335] mb-4 transition-colors duration-300">
         <div className="mt-2 mb-1 ml-3">
           <div className="font-bold text-[19px] mb-1">
-            <TranslatedText>Subscribe to Premium</TranslatedText>
+            <TranslatedText>Unlock Premium Features</TranslatedText>
           </div>
           <span className="text-gray-700 dark:text-white text-[14px] font-extralight">
             <TranslatedText>
-              Subscribe to unlock new features and if eligible, receive a share
-              of revenue.
+              Get access to advanced anonymous posting, enhanced privacy
+              controls, and exclusive tools by upgrading to Premium.
             </TranslatedText>
           </span>
 
           <Link
             href="/subscribe"
-            className="mt-3  flex justify-center flex-direction-row bg-[#1a8cd8] w-40 rounded-full py-2 text-center text-white font-bold "
+            className="mt-3 flex justify-center flex-direction-row bg-[#1a8cd8] w-40 rounded-full py-2 text-center text-white font-bold"
           >
-            <TranslatedText>Subscribe</TranslatedText>
+            <TranslatedText>Upgrade Now</TranslatedText>
           </Link>
         </div>
       </div>

@@ -65,7 +65,7 @@ const Home = () => {
       {/* Posts Feed */}
       <div className="max-w-4xl mx-auto space-y-6 p-3">
         {/* Featured Post */}
-        <div className="bg-white/80 dark:bg-[#262335] backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden">
+        <div className="bg-white/80 dark:bg-[#262335]  rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden">
           <div className="p-6">
             <div className="flex items-center space-x-4 mb-4">
               <div className="w-12 h-12 rounded-full overflow-hidden">
@@ -85,7 +85,7 @@ const Home = () => {
               </div>
               <div className="ml-auto"></div>
             </div>
-            <p className="text-slate-700 dark:text-slate-300 text-lg leading-relaxed mb-4">
+            <p className="text-slate-700 dark:text-slate-100 text-lg leading-relaxed mb-4 text-sm">
               eka eka keln kaiwath rasa mihiri katah Taniya thmi mae hita gath
               ekama kena 🐘❤ #Thaniya
             </p>
