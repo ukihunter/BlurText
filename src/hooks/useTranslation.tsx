@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { getFallbackTranslation } from "@/utils/fallbackTranslations";
 
 export const useTranslatedText = (originalText: string) => {
   const { translate, currentLanguage } = useTranslation();
@@ -16,14 +15,6 @@ export const useTranslatedText = (originalText: string) => {
       return;
     }
 
-    // First, check if we have a fallback translation immediately
-    const fallbackTranslation = getFallbackTranslation(originalText, currentLanguage);
-    if (fallbackTranslation !== originalText) {
-      setTranslatedText(fallbackTranslation);
-      return; // Use fallback, don't call API
-    }
-
-    // If no fallback, use API translation
     const translateText = async () => {
       setIsLoading(true);
       try {

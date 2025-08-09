@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { jwtVerify } from "jose";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
 
   // Public routes that don't require authentication
@@ -12,6 +12,11 @@ export function middleware(request: NextRequest) {
     "/api/auth/register",
     "/api/auth/logout",
     "/api/auth/me",
+    "/api/debug/clear-db", // Debug route for clearing database
+    "/api/debug/clear-database", // Debug route for clearing database
+    "/api/debug/create-test-users", // Debug route for creating test users
+    "/api/debug/users", // Debug route for checking users
+    "/api/debug/unfollowed", // Debug route for unfollowed logic
   ];
 
   // Check if current path is a public route
@@ -26,16 +31,23 @@ export function middleware(request: NextRequest) {
   // For API routes, require authentication
   if (request.nextUrl.pathname.startsWith("/api/")) {
     if (!token) {
+      console.log("MIDDLEWARE: No token found");
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
       );
     }
 
+    console.log("MIDDLEWARE: Verifying token for path:", request.nextUrl.pathname);
+    console.log("MIDDLEWARE: JWT_SECRET exists:", !!process.env.JWT_SECRET);
+    
     try {
-      jwt.verify(token, process.env.JWT_SECRET!);
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(token, secret);
+      console.log("MIDDLEWARE: Token verification successful");
       return NextResponse.next();
-    } catch {
+    } catch (error) {
+      console.log("MIDDLEWARE: JWT verification failed:", error);
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
   }
