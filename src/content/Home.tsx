@@ -1,8 +1,81 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 
 const Home = () => {
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [algorithm, setAlgorithm] = useState('mixed');
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, []);
+
+  const fetchRecommendations = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/recommendations');
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendations(data.recommendations);
+        setAlgorithm(data.algorithm);
+      } else {
+        console.error('Failed to fetch recommendations');
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTimeAgo = (timestamp: string | Date) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInHours = Math.floor((now.getTime() - time.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
+
+  const getContentTypeIcon = (type: string) => {
+    switch (type) {
+      case 'image': return '🖼️';
+      case 'video': return '🎥';
+      case 'link': return '🔗';
+      case 'poll': return '📊';
+      default: return '📝';
+    }
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const icons: { [key: string]: string } = {
+      technology: '💻',
+      science: '🔬',
+      art: '🎨',
+      music: '🎵',
+      sports: '⚽',
+      travel: '✈️',
+      food: '🍕',
+      fashion: '👗',
+      photography: '📷',
+      gaming: '🎮',
+      books: '📚',
+      movies: '🎬',
+      fitness: '💪',
+      health: '🏥',
+      business: '💼',
+      education: '🎓',
+      lifestyle: '✨',
+      nature: '🌿',
+      comedy: '😂',
+      news: '📰',
+      general: '💬'
+    };
+    return icons[category] || '💬';
+  };
   return (
     <div className="bg-[#262335] ">
       {/* Header */}
@@ -85,7 +158,7 @@ const Home = () => {
               </div>
               <div className="ml-auto"></div>
             </div>
-            <p className="text-slate-700 dark:text-slate-100 text-lg leading-relaxed mb-4 text-sm">
+            <p className="text-slate-700 dark:text-slate-100 text-lg leading-relaxed mb-4">
               eka eka keln kaiwath rasa mihiri katah Taniya thmi mae hita gath
               ekama kena 🐘❤ #Thaniya
             </p>

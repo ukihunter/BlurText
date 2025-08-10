@@ -6,6 +6,7 @@ import "./globals.css";
 import RightBar from "@/components/RightBar";
 import Loading from "@/components/Loading";
 import Login from "@/components/Login";
+import Preferences from "@/components/Preferences";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 
@@ -75,6 +76,8 @@ export default function RootLayout({
     username: string;
     id: string;
   } | null>(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [isCheckingPreferences, setIsCheckingPreferences] = useState(false);
 
   // Restore page state from localStorage on component mount
   useEffect(() => {
@@ -113,6 +116,10 @@ export default function RootLayout({
         };
         setIsLoggedIn(true);
         setUser(userInfo);
+        
+        // Check if user needs onboarding
+        await checkUserPreferences();
+        
         // Dispatch user change event
         window.dispatchEvent(
           new CustomEvent("userChanged", { detail: userInfo })
@@ -120,6 +127,7 @@ export default function RootLayout({
       } else {
         setIsLoggedIn(false);
         setUser(null);
+        setNeedsOnboarding(false);
         // Dispatch user change event for logout
         window.dispatchEvent(new CustomEvent("userChanged", { detail: null }));
       }
@@ -127,10 +135,35 @@ export default function RootLayout({
       console.error("Auth check failed:", error);
       setIsLoggedIn(false);
       setUser(null);
+      setNeedsOnboarding(false);
       // Dispatch user change event for error case
       window.dispatchEvent(new CustomEvent("userChanged", { detail: null }));
     } finally {
       setIsAuthChecked(true);
+    }
+  };
+
+  const checkUserPreferences = async () => {
+    try {
+      setIsCheckingPreferences(true);
+      const response = await fetch("/api/preferences", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNeedsOnboarding(!data.preferences.hasCompletedOnboarding);
+      } else {
+        // If preferences don't exist, user needs onboarding
+        setNeedsOnboarding(true);
+      }
+    } catch (error) {
+      console.error("Error checking preferences:", error);
+      // Default to needing onboarding if there's an error
+      setNeedsOnboarding(true);
+    } finally {
+      setIsCheckingPreferences(false);
     }
   };
 
@@ -232,6 +265,10 @@ export default function RootLayout({
     if (userData) {
       // Set user data directly from login response
       setUser(userData);
+      // Check if user needs onboarding after login
+      setTimeout(() => {
+        checkUserPreferences();
+      }, 100);
       // Dispatch user change event
       window.dispatchEvent(
         new CustomEvent("userChanged", { detail: userData })
@@ -243,6 +280,14 @@ export default function RootLayout({
       }, 100);
     }
     setIsLoading(true); // Reset loading state when logging in
+  };
+
+  const handleOnboardingComplete = () => {
+    setNeedsOnboarding(false);
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
   };
 
   const handleLogout = async () => {
@@ -323,6 +368,52 @@ export default function RootLayout({
 
   // Show loading only when transitioning between content (not during auth check)
   if (isLoggedIn && isAuthChecked && isLoading) {
+    return (
+      <html lang="en">
+        <head>
+          <title>BlurText - Anonymous Social Platform</title>
+          <meta
+            name="description"
+            content="Anonymous social interaction through unique credentials. Share thoughts freely without revealing your identity."
+          />
+          <link rel="icon" href="icons/icone.png" />
+        </head>
+        <body>
+          <ThemeProvider>
+            <TranslationProvider>
+              <Loading />
+            </TranslationProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    );
+  }
+
+  // Show preferences/onboarding page for new users
+  if (isLoggedIn && isAuthChecked && !isCheckingPreferences && needsOnboarding) {
+    return (
+      <html lang="en">
+        <head>
+          <title>BlurText - Set Your Preferences</title>
+          <meta
+            name="description"
+            content="Personalize your BlurText experience with custom preferences."
+          />
+          <link rel="icon" href="icons/icone.png" />
+        </head>
+        <body>
+          <ThemeProvider>
+            <TranslationProvider>
+              <Preferences onComplete={handleOnboardingComplete} isOnboarding={true} />
+            </TranslationProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    );
+  }
+
+  // Show loading while checking preferences
+  if (isLoggedIn && isAuthChecked && isCheckingPreferences) {
     return (
       <html lang="en">
         <head>
