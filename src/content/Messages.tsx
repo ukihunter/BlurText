@@ -2,7 +2,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { TranslatedText } from "@/hooks/useTranslation";
-import { generateConsistentAvatar, generateFallbackAvatar } from "@/utils/avatarUtils";
+import {
+  generateConsistentAvatar,
+  generateFallbackAvatar,
+} from "@/utils/avatarUtils";
 import Icon from "@/components/Icon";
 import MessageStatus from "@/components/MessageStatus";
 import MessageOptions from "@/components/MessageOptions";
@@ -27,9 +30,9 @@ interface ChatMessage {
   id: string;
   content: string;
   sender: string;
-  messageType: 'text' | 'emoji' | 'image' | 'file';
-  status: 'sending' | 'sent' | 'delivered' | 'read';
-  createdAt: Date;
+  messageType: "text" | "emoji" | "image" | "file";
+  status: "sending" | "sent" | "delivered" | "read";
+  createdAt: Date | string;
   isSent: boolean;
   isRead: boolean;
 }
@@ -56,7 +59,10 @@ interface MessagesProps {
   selectedUser?: User;
 }
 
-const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => {
+const Messages: React.FC<MessagesProps> = ({
+  selectedUserId,
+  selectedUser,
+}) => {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messageText, setMessageText] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -66,19 +72,25 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [followingStates, setFollowingStates] = useState<{ [key: string]: boolean }>({});
-  
+  const [followingStates, setFollowingStates] = useState<{
+    [key: string]: boolean;
+  }>({});
+
   // Selection mode states
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
-  
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(
+    new Set()
+  );
+
   const emojiPickerRef = useRef<HTMLDivElement>(null);
-  
+
   // Handle image load error
-  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleImageError = (
+    event: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
     const target = event.target as HTMLImageElement;
     // Fallback to a simple colored avatar
-    const username = target.alt || 'user';
+    const username = target.alt || "user";
     target.src = generateFallbackAvatar(username);
   };
 
@@ -91,10 +103,12 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
         const data = await response.json();
         const newChats = data.chats || [];
         setChats(newChats);
-        
+
         // If we have a selected chat, update it with fresh data from the chats list
         if (preserveSelectedChat && selectedChat) {
-          const updatedSelectedChat = newChats.find((chat: Chat) => chat.id === selectedChat.id);
+          const updatedSelectedChat = newChats.find(
+            (chat: Chat) => chat.id === selectedChat.id
+          );
           if (updatedSelectedChat) {
             setSelectedChat(updatedSelectedChat);
           }
@@ -118,32 +132,35 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
   const fetchChatUsers = async () => {
     try {
       setIsLoading(true);
-      
+
       const response = await fetch("/api/users/chat-contacts");
 
       if (response.ok) {
         const data = await response.json();
         const contacts = data.contacts || [];
-        
+
         if (contacts.length === 0) {
-          if (window.location.pathname.includes('messages')) {
-            window.dispatchEvent(new CustomEvent('navigateToExplore'));
+          if (window.location.pathname.includes("messages")) {
+            window.dispatchEvent(new CustomEvent("navigateToExplore"));
           }
           setChatUsers([]);
         } else {
           setChatUsers(contacts);
         }
       } else if (response.status === 401) {
-        if (window.location.pathname.includes('messages')) {
-          window.dispatchEvent(new CustomEvent('navigateToExplore'));
+        if (window.location.pathname.includes("messages")) {
+          window.dispatchEvent(new CustomEvent("navigateToExplore"));
         }
         setChatUsers([]);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.warn("Failed to fetch chat contacts:", response.status, errorData);
+        console.warn(
+          "Failed to fetch chat contacts:",
+          response.status,
+          errorData
+        );
         setChatUsers([]);
       }
-      
     } catch (error) {
       console.warn("Error fetching chat users:", error);
       setChatUsers([]);
@@ -159,8 +176,16 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
       const response = await fetch(`/api/messages?chatId=${chatId}`);
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.messages || []);
-        
+
+        // Ensure all message dates are properly converted to Date objects
+        const formattedMessages = (data.messages || []).map((msg: any) => ({
+          ...msg,
+          createdAt: new Date(msg.createdAt),
+          readAt: msg.readAt ? new Date(msg.readAt) : null,
+        }));
+
+        setMessages(formattedMessages);
+
         // Mark messages as read
         await fetch("/api/messages/mark-read", {
           method: "POST",
@@ -182,7 +207,9 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
   };
 
   // Create or get existing chat
-  const createOrGetChat = async (otherUsername: string): Promise<Chat | null> => {
+  const createOrGetChat = async (
+    otherUsername: string
+  ): Promise<Chat | null> => {
     try {
       const response = await fetch("/api/chats", {
         method: "POST",
@@ -194,7 +221,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Create Chat object from response
         const newChat: Chat = {
           id: data.chatId,
@@ -243,8 +270,13 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
 
   // Handle pre-selected user
   useEffect(() => {
-    console.log("🔔 Messages useEffect - selectedUser:", selectedUser, "selectedUserId:", selectedUserId);
-    
+    console.log(
+      "🔔 Messages useEffect - selectedUser:",
+      selectedUser,
+      "selectedUserId:",
+      selectedUserId
+    );
+
     if (selectedUser) {
       // Create or get chat with selected user
       console.log("🔔 Creating chat with selectedUser:", selectedUser);
@@ -252,7 +284,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
         if (chat) {
           setSelectedChat(chat);
           await fetchMessages(chat.id);
-          
+
           // Update chats list in the background
           setTimeout(() => {
             fetchChats(true); // preserve selected chat
@@ -261,7 +293,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
       });
     } else if (selectedUserId && chats.length > 0) {
       // Find chat by user ID
-      const chat = chats.find(c => c.otherUser.username === selectedUserId);
+      const chat = chats.find((c) => c.otherUser.username === selectedUserId);
       if (chat) {
         console.log("🔔 Found chat by ID:", chat);
         setSelectedChat(chat);
@@ -277,12 +309,12 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
     const tempMessage: ChatMessage = {
       id: `temp-${Date.now()}`,
       content: messageText.trim(),
-      sender: 'current-user', // We'll get the actual username from the API response
-      messageType: 'text',
-      status: 'sending',
+      sender: "current-user", // We'll get the actual username from the API response
+      messageType: "text",
+      status: "sending",
       createdAt: new Date(),
       isSent: true,
-      isRead: false
+      isRead: false,
     };
 
     // Add temporary message with "sending" status
@@ -299,30 +331,39 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
         body: JSON.stringify({
           chatId: selectedChat.id,
           content: messageContent,
-          messageType: 'text',
+          messageType: "text",
         }),
       });
 
       if (response.ok) {
-        const newMessage = await response.json();
-        
+        const result = await response.json();
+        const newMessage = result.message;
+
         // Replace temporary message with actual message from server
-        setMessages((prev) => 
-          prev.map(msg => 
-            msg.id === tempMessage.id 
-              ? { ...newMessage, isSent: true } 
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempMessage.id
+              ? {
+                  ...newMessage,
+                  createdAt: new Date(newMessage.createdAt), // Ensure proper Date object
+                  isSent: true,
+                }
               : msg
           )
         );
-        
+
         // Update the selected chat's last message info without refetching all chats
-        setSelectedChat(prevChat => prevChat ? {
-          ...prevChat,
-          lastMessage: newMessage.content,
-          lastMessageTime: new Date(newMessage.createdAt),
-          lastMessageSender: newMessage.sender,
-          updatedAt: new Date()
-        } : null);
+        setSelectedChat((prevChat) =>
+          prevChat
+            ? {
+                ...prevChat,
+                lastMessage: newMessage.content,
+                lastMessageTime: new Date(newMessage.createdAt),
+                lastMessageSender: newMessage.sender,
+                updatedAt: new Date(),
+              }
+            : null
+        );
 
         // Update chats list in the background without affecting selected chat
         setTimeout(() => {
@@ -330,13 +371,13 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
         }, 100);
       } else {
         // Remove temporary message on failure
-        setMessages((prev) => prev.filter(msg => msg.id !== tempMessage.id));
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
         setMessageText(messageContent); // Restore message text
         console.error("Failed to send message:", response.status);
       }
     } catch (error) {
       // Remove temporary message on error
-      setMessages((prev) => prev.filter(msg => msg.id !== tempMessage.id));
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
       setMessageText(messageContent); // Restore message text
       console.error("Error sending message:", error);
     }
@@ -358,12 +399,12 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
 
   const handleUserSelect = async (user: User) => {
     setShowNewChatModal(false); // Close modal immediately to prevent flickering
-    
+
     const chat = await createOrGetChat(user.username);
     if (chat) {
       setSelectedChat(chat);
       await fetchMessages(chat.id);
-      
+
       // Update chats list in the background without affecting selected chat
       setTimeout(() => {
         fetchChats(true); // preserve selected chat
@@ -371,7 +412,10 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
     }
   };
 
-  const handleDeleteMessage = async (messageId: string, deleteType: 'delete-for-me' | 'delete-for-everyone') => {
+  const handleDeleteMessage = async (
+    messageId: string,
+    deleteType: "delete-for-me" | "delete-for-everyone"
+  ) => {
     try {
       const response = await fetch("/api/messages/delete", {
         method: "DELETE",
@@ -383,7 +427,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
 
       if (response.ok) {
         // Remove message from local state
-        setMessages((prev) => prev.filter(msg => msg.id !== messageId));
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
 
         // Refresh chat list to update last message if needed
         setTimeout(() => {
@@ -411,7 +455,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
       newSelected.add(messageId);
     }
     setSelectedMessages(newSelected);
-    
+
     // Auto-exit selection mode if no messages selected
     if (newSelected.size === 0) {
       setIsSelectionMode(false);
@@ -419,7 +463,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
   };
 
   const selectAllMessages = () => {
-    const allMessageIds = new Set(messages.map(msg => msg.id));
+    const allMessageIds = new Set(messages.map((msg) => msg.id));
     setSelectedMessages(allMessageIds);
   };
 
@@ -428,7 +472,9 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
     setSelectedMessages(new Set());
   };
 
-  const handleBulkDelete = async (deleteType: 'delete-for-me' | 'delete-for-everyone') => {
+  const handleBulkDelete = async (
+    deleteType: "delete-for-me" | "delete-for-everyone"
+  ) => {
     if (selectedMessages.size === 0) return;
 
     try {
@@ -443,8 +489,10 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
 
       if (response.ok) {
         // Remove deleted messages from local state
-        setMessages((prev) => prev.filter(msg => !selectedMessages.has(msg.id)));
-        
+        setMessages((prev) =>
+          prev.filter((msg) => !selectedMessages.has(msg.id))
+        );
+
         // Exit selection mode
         cancelSelection();
 
@@ -463,8 +511,8 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
   // Check if selected messages are all sent by current user (for delete-for-everyone option)
   const areSelectedMessagesSentByUser = () => {
     if (selectedMessages.size === 0) return false;
-    return Array.from(selectedMessages).every(messageId => {
-      const message = messages.find(msg => msg.id === messageId);
+    return Array.from(selectedMessages).every((messageId) => {
+      const message = messages.find((msg) => msg.id === messageId);
       return message?.isSent === true;
     });
   };
@@ -483,7 +531,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
         // Go back to chat list
         setSelectedChat(null);
         setMessages([]);
-        
+
         // Update chat list
         fetchChats();
       } else {
@@ -507,25 +555,38 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
     setShowNewChatModal(false);
   };
 
-  const formatMessageTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+  const formatMessageTime = (date: Date | string) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return "Invalid Date";
+    }
+
+    return dateObj.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
-  const formatChatTime = (date?: Date) => {
-    if (!date) return '';
-    
-    const messageDate = new Date(date);
+  const formatChatTime = (date?: Date | string) => {
+    if (!date) return "";
+
+    const messageDate = typeof date === "string" ? new Date(date) : date;
+
+    // Check if date is valid
+    if (isNaN(messageDate.getTime())) {
+      return "Invalid Date";
+    }
+
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
-    
+
     if (messageDate.toDateString() === today.toDateString()) {
       return formatMessageTime(messageDate);
     } else if (messageDate.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
+      return "Yesterday";
     } else {
       return messageDate.toLocaleDateString();
     }
@@ -585,7 +646,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {messages.length > 0 && (
                 <button
@@ -608,7 +669,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                   </svg>
                 </button>
               )}
-              
+
               <ChatOptions
                 chatId={selectedChat.id}
                 otherUserName={selectedChat.otherUser.displayName}
@@ -632,7 +693,8 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                   <TranslatedText>No messages yet</TranslatedText>
                 </p>
                 <p className="text-sm">
-                  <TranslatedText>Start a conversation with</TranslatedText> {selectedChat.otherUser.displayName}
+                  <TranslatedText>Start a conversation with</TranslatedText>{" "}
+                  {selectedChat.otherUser.displayName}
                 </p>
               </div>
             </div>
@@ -651,55 +713,75 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                       onClick={() => toggleMessageSelection(message.id)}
                       className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                         selectedMessages.has(message.id)
-                          ? 'bg-blue-500 border-blue-500'
-                          : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
-                      } ${message.isSent ? 'order-first' : 'order-last'}`}
+                          ? "bg-blue-500 border-blue-500"
+                          : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                      } ${message.isSent ? "order-first" : "order-last"}`}
                     >
                       {selectedMessages.has(message.id) && (
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       )}
                     </button>
                   )}
 
                   <div
-                    onClick={isSelectionMode ? () => toggleMessageSelection(message.id) : undefined}
+                    onClick={
+                      isSelectionMode
+                        ? () => toggleMessageSelection(message.id)
+                        : undefined
+                    }
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
                       message.isSent
                         ? "bg-blue-500 text-white"
                         : "bg-white dark:bg-[#262335] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
                     } ${
-                      isSelectionMode 
-                        ? `cursor-pointer ${selectedMessages.has(message.id) ? 'ring-2 ring-blue-300' : 'hover:ring-2 hover:ring-gray-300'}` 
-                        : ''
+                      isSelectionMode
+                        ? `cursor-pointer ${
+                            selectedMessages.has(message.id)
+                              ? "ring-2 ring-blue-300"
+                              : "hover:ring-2 hover:ring-gray-300"
+                          }`
+                        : ""
                     }`}
                   >
                     <p className="text-sm">{message.content}</p>
-                    <div className={`flex items-center justify-between mt-1 ${
-                      message.isSent
-                        ? "text-blue-100"
-                        : "text-gray-500 dark:text-gray-400"
-                    }`}>
+                    <div
+                      className={`flex items-center justify-between mt-1 ${
+                        message.isSent
+                          ? "text-blue-100"
+                          : "text-gray-500 dark:text-gray-400"
+                      }`}
+                    >
                       <p className="text-xs">
                         {formatMessageTime(message.createdAt)}
                       </p>
                       {message.isSent && (
-                        <MessageStatus 
-                          status={message.isRead ? "read" : message.status} 
+                        <MessageStatus
+                          status={message.isRead ? "read" : message.status}
                           isFromSender={true}
                           className="ml-1"
                         />
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Individual message options - only show when not in selection mode */}
                   {!isSelectionMode && (
                     <MessageOptions
                       messageId={message.id}
                       isSent={message.isSent}
-                      messageAge={Date.now() - new Date(message.createdAt).getTime()}
+                      messageAge={
+                        Date.now() - new Date(message.createdAt).getTime()
+                      }
                       onDeleteMessage={handleDeleteMessage}
                       className={message.isSent ? "order-first" : "order-last"}
                     />
@@ -809,7 +891,9 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                 <TranslatedText>No conversations yet</TranslatedText>
               </p>
               <p className="text-sm mb-4">
-                <TranslatedText>Start chatting with people you follow</TranslatedText>
+                <TranslatedText>
+                  Start chatting with people you follow
+                </TranslatedText>
               </p>
               <button
                 onClick={handleOpenNewChat}
@@ -862,7 +946,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                         <>
                           {chat.lastMessageSender && (
                             <span className="font-medium">
-                              {chat.lastMessageSender}: 
+                              {chat.lastMessageSender}:
                             </span>
                           )}
                           {chat.lastMessage}
@@ -874,7 +958,7 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                   </div>
                 </div>
               </div>
-              
+
               {/* Quick delete button for chat list */}
               <button
                 onClick={(e) => {
@@ -953,10 +1037,14 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
                       onClick={(e) => {
                         e.preventDefault();
                         // Dispatch custom event to trigger explore navigation
-                        window.dispatchEvent(new CustomEvent('navigateToExplore'));
+                        window.dispatchEvent(
+                          new CustomEvent("navigateToExplore")
+                        );
                       }}
                     >
-                      <TranslatedText>Explore to find people to follow</TranslatedText>
+                      <TranslatedText>
+                        Explore to find people to follow
+                      </TranslatedText>
                     </a>
                   </div>
                 </div>
@@ -1023,4 +1111,4 @@ const Messages: React.FC<MessagesProps> = ({ selectedUserId, selectedUser }) => 
   );
 };
 
-export default Messages
+export default Messages;

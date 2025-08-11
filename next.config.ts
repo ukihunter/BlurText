@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "external-content.duckduckgo.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "static.dw.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };

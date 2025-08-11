@@ -3,23 +3,30 @@ import bcryptjs from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import UserFollows from "@/models/UserFollows";
+import { authValidation, sanitizeInput } from "@/lib/security";
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const { username, password } = await request.json();
+    const body = await request.json();
 
-    // Validate input
-    if (!username || !password) {
+    // Validate input using Joi schema
+    const { error, value } = authValidation.register.validate(body);
+    if (error) {
       return NextResponse.json(
-        { error: "Username and password are required" },
+        { error: error.details[0].message },
         { status: 400 }
       );
     }
 
+    const { username, password } = value;
+
+    // Sanitize username
+    const sanitizedUsername = sanitizeInput.username(username);
+
     // Check if user already exists
-    const existingUser = await User.findOne({ username });
+    const existingUser = await User.findOne({ username: sanitizedUsername });
     if (existingUser) {
       return NextResponse.json(
         { error: "Username already exists" },
@@ -27,12 +34,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password
-    const hashedPassword = await bcryptjs.hash(password, 12);
+    // Hash password with higher salt rounds for security
+    const hashedPassword = await bcryptjs.hash(password, 14);
 
     // Create new user
     const newUser = new User({
-      username,
+      username: sanitizedUsername,
       password: hashedPassword,
       createdAt: new Date(),
       isAnonymous: false,
@@ -42,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Create UserFollows entry for the new user
     const userFollows = new UserFollows({
-      username: username,
+      username: sanitizedUsername,
       followedUsers: [], // Start with empty array
     });
 
@@ -60,7 +67,10 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error(
+      "Registration error:",
+      process.env.NODE_ENV === "development" ? error : "Registration failed"
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

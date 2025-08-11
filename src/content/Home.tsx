@@ -1,81 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import Image from "next/image";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 
 const Home = () => {
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [algorithm, setAlgorithm] = useState('mixed');
-
-  useEffect(() => {
-    fetchRecommendations();
-  }, []);
-
-  const fetchRecommendations = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/recommendations');
-      if (response.ok) {
-        const data = await response.json();
-        setRecommendations(data.recommendations);
-        setAlgorithm(data.algorithm);
-      } else {
-        console.error('Failed to fetch recommendations');
-      }
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const formatTimeAgo = (timestamp: string | Date) => {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diffInHours = Math.floor((now.getTime() - time.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d ago`;
-  };
-
-  const getContentTypeIcon = (type: string) => {
-    switch (type) {
-      case 'image': return '🖼️';
-      case 'video': return '🎥';
-      case 'link': return '🔗';
-      case 'poll': return '📊';
-      default: return '📝';
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    const icons: { [key: string]: string } = {
-      technology: '💻',
-      science: '🔬',
-      art: '🎨',
-      music: '🎵',
-      sports: '⚽',
-      travel: '✈️',
-      food: '🍕',
-      fashion: '👗',
-      photography: '📷',
-      gaming: '🎮',
-      books: '📚',
-      movies: '🎬',
-      fitness: '💪',
-      health: '🏥',
-      business: '💼',
-      education: '🎓',
-      lifestyle: '✨',
-      nature: '🌿',
-      comedy: '😂',
-      news: '📰',
-      general: '💬'
-    };
-    return icons[category] || '💬';
-  };
   return (
     <div className="bg-[#262335] ">
       {/* Header */}
@@ -94,11 +22,12 @@ const Home = () => {
       <div className="max-w-4xl mx-auto mb-2 ">
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl  shadow-xl border border-white/20 dark:border-slate-700/30 p-6">
           <div className="flex items-start space-x-4">
-            <div className="w-10 h-10 flex-shrink-0 overflow-hidden">
-              <img
+            <div className="w-10 h-10 flex-shrink-0 overflow-hidden relative">
+              <Image
                 src={generateConsistentAvatar("youruser")}
                 alt="Your Avatar"
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
             </div>
             <div className="flex-1">
@@ -141,11 +70,12 @@ const Home = () => {
         <div className="bg-white/80 dark:bg-[#262335]  rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden">
           <div className="p-6">
             <div className="flex items-center space-x-4 mb-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden">
-                <img
+              <div className="w-12 h-12 rounded-full overflow-hidden relative">
+                <Image
                   src={generateConsistentAvatar("manusha")}
-                  alt="Alex Smith"
-                  className="w-full h-full object-cover"
+                  alt="Manusha"
+                  fill
+                  className="object-cover"
                 />
               </div>
               <div>
@@ -162,11 +92,11 @@ const Home = () => {
               eka eka keln kaiwath rasa mihiri katah Taniya thmi mae hita gath
               ekama kena 🐘❤ #Thaniya
             </p>
-            <div className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 mb-4 flex items-center justify-center">
+            <div className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 mb-4 flex items-center justify-center relative">
               <img
                 src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.dw.com%2Fimage%2F62865468_605.jpg&f=1&nofb=1&ipt=0a565863664a1c548b050fcbc3d386337f57f3c94b6ed73c770ce71101475fbe"
                 alt="Design System Preview"
-                className="object-cover rounded-2xl h-full w-full"
+                className="object-cover rounded-2xl"
               />
             </div>
             <div className="flex items-center justify-between">
@@ -249,11 +179,12 @@ const Home = () => {
           {/* Post 1 */}
           <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden">
-                <img
+              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
+                <Image
                   src={generateConsistentAvatar("mariajohnson")}
                   alt="Maria Johnson"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               </div>
               <div className="flex-1">
@@ -346,11 +277,12 @@ const Home = () => {
           {/* Post 2 */}
           <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden">
-                <img
+              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
+                <Image
                   src={generateConsistentAvatar("davidkim")}
                   alt="David Kim"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               </div>
               <div className="flex-1">
@@ -455,11 +387,12 @@ const Home = () => {
           {/* Post 3 */}
           <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden">
-                <img
+              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
+                <Image
                   src={generateConsistentAvatar("sarahlee")}
                   alt="Sarah Lee"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               </div>
               <div className="flex-1">
@@ -555,11 +488,12 @@ const Home = () => {
           {/* Post 4 */}
           <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden">
-                <img
+              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
+                <Image
                   src={generateConsistentAvatar("ryanchen")}
                   alt="Ryan Chen"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               </div>
               <div className="flex-1">

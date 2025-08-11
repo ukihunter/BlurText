@@ -3,26 +3,24 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { authValidation } from "@/lib/security";
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
 
-    const { currentPassword, newPassword } = await request.json();
+    const body = await request.json();
 
-    if (!currentPassword || !newPassword) {
+    // Validate input using Joi schema
+    const { error, value } = authValidation.changePassword.validate(body);
+    if (error) {
       return NextResponse.json(
-        { message: "Current password and new password are required" },
+        { message: error.details[0].message },
         { status: 400 }
       );
     }
 
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { message: "New password must be at least 6 characters long" },
-        { status: 400 }
-      );
-    }
+    const { currentPassword, newPassword } = value;
 
     // Get token from cookies
     const token = request.cookies.get("token")?.value;
@@ -36,7 +34,10 @@ export async function POST(request: NextRequest) {
         userId: string;
       };
     } catch (jwtError) {
-      console.error("JWT verification error:", jwtError);
+      console.error(
+        "JWT verification error:",
+        process.env.NODE_ENV === "development" ? jwtError : "Invalid token"
+      );
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
@@ -58,8 +59,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash new password
-    const saltRounds = 12;
+    // Hash new password with higher salt rounds
+    const saltRounds = 14;
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password in database
@@ -73,7 +74,10 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Change password error:", error);
+    console.error(
+      "Change password error:",
+      process.env.NODE_ENV === "development" ? error : "Password change failed"
+    );
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

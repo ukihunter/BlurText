@@ -9,72 +9,75 @@ interface PreferencesProps {
   isOnboarding?: boolean;
 }
 
-const Preferences: React.FC<PreferencesProps> = ({ onComplete, isOnboarding = true }) => {
+const Preferences: React.FC<PreferencesProps> = ({
+  onComplete,
+  isOnboarding = true,
+}) => {
   const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
-  const [validationError, setValidationError] = useState('');
-  
+  const [validationError, setValidationError] = useState("");
+
   // Preference states (simplified)
   const [interests, setInterests] = useState<string[]>([]);
 
   const interestOptions = [
-    { id: 'technology', label: 'Technology', icon: '💻' },
-    { id: 'art', label: 'Art', icon: '🎨' },
-    { id: 'music', label: 'Music', icon: '🎵' },
-    { id: 'sports', label: 'Sports', icon: '⚽' },
-    { id: 'travel', label: 'Travel', icon: '✈️' },
-    { id: 'food', label: 'Food', icon: '🍕' },
-    { id: 'gaming', label: 'Gaming', icon: '🎮' },
-    { id: 'movies', label: 'Movies', icon: '🎬' },
-    { id: 'fitness', label: 'Fitness', icon: '💪' },
-    { id: 'lifestyle', label: 'Lifestyle', icon: '✨' }
+    { id: "technology", label: "Technology", icon: "💻" },
+    { id: "art", label: "Art", icon: "🎨" },
+    { id: "music", label: "Music", icon: "🎵" },
+    { id: "sports", label: "Sports", icon: "⚽" },
+    { id: "travel", label: "Travel", icon: "✈️" },
+    { id: "food", label: "Food", icon: "🍕" },
+    { id: "gaming", label: "Gaming", icon: "🎮" },
+    { id: "movies", label: "Movies", icon: "🎬" },
+    { id: "fitness", label: "Fitness", icon: "💪" },
+    { id: "lifestyle", label: "Lifestyle", icon: "✨" },
   ];
 
   const toggleInterest = (interest: string) => {
-    setInterests(prev => 
-      prev.includes(interest) 
-        ? prev.filter(i => i !== interest)
+    setInterests((prev) =>
+      prev.includes(interest)
+        ? prev.filter((i) => i !== interest)
         : [...prev, interest]
     );
   };
 
   const handleSave = () => {
-    setValidationError('');
-    
+    setValidationError("");
+
     // Validate interests
     if (interests.length === 0) {
-      setValidationError('Please select at least one interest');
+      setValidationError("Please select at least one interest");
       return;
     }
-    
+
     handleSavePreferences();
   };
 
   const handleSavePreferences = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/preferences', {
-        method: 'POST',
+      const response = await fetch("/api/preferences", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           interests,
-          completeOnboarding: isOnboarding
+          completeOnboarding: isOnboarding,
         }),
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         onComplete();
       } else {
         const errorData = await response.json();
-        console.error('Failed to save preferences:', errorData);
-        alert('Failed to save preferences. Please try again.');
+        console.error("Failed to save preferences:", errorData);
+        alert("Failed to save preferences. Please try again.");
       }
     } catch (error) {
-      console.error('Error saving preferences:', error);
-      alert('Error saving preferences. Please try again.');
+      console.error("Error saving preferences:", error);
+      alert("Error saving preferences. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -88,16 +91,18 @@ const Preferences: React.FC<PreferencesProps> = ({ onComplete, isOnboarding = tr
             <TranslatedText>What interests you?</TranslatedText>
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            <TranslatedText>Select topics you'd like to see more of (choose at least one)</TranslatedText>
+            <TranslatedText>
+              Select topics you&apos;d like to see more of (choose at least one)
+            </TranslatedText>
           </p>
         </div>
-        
+
         {validationError && (
           <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-300 px-4 py-3 rounded">
             {validationError}
           </div>
         )}
-        
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {interestOptions.map((interest) => (
             <button
@@ -105,8 +110,8 @@ const Preferences: React.FC<PreferencesProps> = ({ onComplete, isOnboarding = tr
               onClick={() => toggleInterest(interest.id)}
               className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                 interests.includes(interest.id)
-                  ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                  : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-purple-300 dark:hover:border-purple-500'
+                  ? "border-purple-500 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                  : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-purple-300 dark:hover:border-purple-500"
               }`}
             >
               <div className="text-2xl mb-2">{interest.icon}</div>
@@ -114,7 +119,7 @@ const Preferences: React.FC<PreferencesProps> = ({ onComplete, isOnboarding = tr
             </button>
           ))}
         </div>
-        
+
         <div className="text-center text-sm text-gray-500 dark:text-gray-400">
           <span>Selected: {interests.length} interests</span>
         </div>
@@ -130,7 +135,9 @@ const Preferences: React.FC<PreferencesProps> = ({ onComplete, isOnboarding = tr
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <img
-                src={theme === "light" ? "icons/blur-dark.png" : "icons/blur.png"}
+                src={
+                  theme === "light" ? "icons/blur-dark.png" : "icons/blur.png"
+                }
                 alt="BlurText Logo"
                 width={80}
                 height={80}
@@ -143,16 +150,16 @@ const Preferences: React.FC<PreferencesProps> = ({ onComplete, isOnboarding = tr
                   <TranslatedText>Welcome to BlurText!</TranslatedText>
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  <TranslatedText>Let's personalize your experience</TranslatedText>
+                  <TranslatedText>
+                    Let&apos;s personalize your experience
+                  </TranslatedText>
                 </p>
               </div>
             )}
           </div>
 
           {/* Content */}
-          <div className="mb-8">
-            {renderStep()}
-          </div>
+          <div className="mb-8">{renderStep()}</div>
 
           {/* Save Button */}
           <div className="flex justify-center">
