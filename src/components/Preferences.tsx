@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { useTheme } from "@/contexts/ThemeContext";
+import { showErrorToast } from "@/utils/toast";
 
 interface PreferencesProps {
   onComplete: () => void;
@@ -73,11 +74,11 @@ const Preferences: React.FC<PreferencesProps> = ({
       } else {
         const errorData = await response.json();
         console.error("Failed to save preferences:", errorData);
-        alert("Failed to save preferences. Please try again.");
+        showErrorToast("Failed to save preferences. Please try again.");
       }
     } catch (error) {
       console.error("Error saving preferences:", error);
-      alert("Error saving preferences. Please try again.");
+      showErrorToast("Error saving preferences. Please try again.");
     } finally {
       setIsLoading(false);
     }

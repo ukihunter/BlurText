@@ -7,6 +7,7 @@ import { generateConsistentAvatar } from "@/utils/avatarUtils";
 import WhisperModal from "@/components/WhisperModal";
 import CommentModal from "@/components/CommentModal";
 import Icon from "@/components/Icon";
+import { showSuccessToast } from "@/utils/toast";
 
 interface Post {
   _id: string;
@@ -228,11 +229,15 @@ const Home = () => {
         );
 
         // Show success message or copy link to clipboard
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(
-            `${window.location.origin}/post/${postId}`
-          );
-          alert("Link copied to clipboard!");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(
+              `${window.location.origin}/post/${postId}`
+            );
+            showSuccessToast("Link copied to clipboard!", 2500);
+          } catch (error) {
+            console.log('Clipboard access denied');
+          }
         }
       }
     } catch (error) {

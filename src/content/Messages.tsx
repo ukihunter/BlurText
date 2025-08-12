@@ -702,24 +702,24 @@ const Messages: React.FC<MessagesProps> = ({
             messages.map((message) => (
               <div
                 key={message.id}
-                className={`group flex ${
+                className={`group flex mb-4 ${
                   message.isSent ? "justify-end" : "justify-start"
                 }`}
               >
-                <div className="relative flex items-end gap-2">
+                <div className="relative flex items-end gap-3 max-w-[75%]">
                   {/* Selection mode checkbox */}
                   {isSelectionMode && (
                     <button
                       onClick={() => toggleMessageSelection(message.id)}
-                      className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 transform hover:scale-110 ${
                         selectedMessages.has(message.id)
-                          ? "bg-blue-500 border-blue-500"
-                          : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
-                      } ${message.isSent ? "order-first" : "order-last"}`}
+                          ? "bg-gradient-to-r from-blue-500 to-purple-600 border-blue-500 shadow-lg"
+                          : "border-gray-300 dark:border-gray-600 hover:border-blue-400 bg-white dark:bg-gray-700"
+                      } ${message.isSent ? "order-first ml-2" : "order-last mr-2"}`}
                     >
                       {selectedMessages.has(message.id) && (
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-4 h-4 text-white"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -733,44 +733,97 @@ const Messages: React.FC<MessagesProps> = ({
                     </button>
                   )}
 
-                  <div
-                    onClick={
-                      isSelectionMode
-                        ? () => toggleMessageSelection(message.id)
-                        : undefined
-                    }
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      message.isSent
-                        ? "bg-blue-500 text-white"
-                        : "bg-white dark:bg-[#262335] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                    } ${
-                      isSelectionMode
-                        ? `cursor-pointer ${
-                            selectedMessages.has(message.id)
-                              ? "ring-2 ring-blue-300"
-                              : "hover:ring-2 hover:ring-gray-300"
-                          }`
-                        : ""
-                    }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
+                  {/* Avatar for received messages */}
+                  {!message.isSent && !isSelectionMode && (
+                    <div className="relative flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 p-0.5">
+                        <div className="w-full h-full rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                            {selectedChat?.otherUser.username.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    {/* Message bubble with enhanced design */}
                     <div
-                      className={`flex items-center justify-between mt-1 ${
+                      onClick={
+                        isSelectionMode
+                          ? () => toggleMessageSelection(message.id)
+                          : undefined
+                      }
+                      className={`relative px-5 py-3 rounded-3xl shadow-lg backdrop-blur-sm transition-all duration-300 transform hover:scale-[1.02] ${
                         message.isSent
-                          ? "text-blue-100"
-                          : "text-gray-500 dark:text-gray-400"
+                          ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-blue-500/25"
+                          : "bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white border border-gray-200/50 dark:border-gray-700/50 shadow-gray-500/10"
+                      } ${
+                        isSelectionMode
+                          ? `cursor-pointer ${
+                              selectedMessages.has(message.id)
+                                ? "ring-4 ring-blue-300/50 dark:ring-blue-500/30"
+                                : "hover:ring-4 hover:ring-gray-300/30"
+                            }`
+                          : ""
                       }`}
+                      style={{
+                        borderRadius: message.isSent 
+                          ? '24px 24px 8px 24px' 
+                          : '24px 24px 24px 8px'
+                      }}
                     >
-                      <p className="text-xs">
-                        {formatMessageTime(message.createdAt)}
+                      {/* Message content */}
+                      <p className={`text-sm font-medium leading-relaxed ${
+                        message.isSent ? 'text-white' : 'text-gray-800 dark:text-gray-100'
+                      }`}>
+                        {message.content}
                       </p>
+                      
+                      {/* Decorative elements for sent messages */}
                       {message.isSent && (
-                        <MessageStatus
-                          status={message.isRead ? "read" : message.status}
-                          isFromSender={true}
-                          className="ml-1"
-                        />
+                        <>
+                          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent rounded-3xl pointer-events-none"></div>
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full opacity-60"></div>
+                        </>
                       )}
+                    </div>
+
+                    {/* Message info and status */}
+                    <div className={`flex items-center justify-between mt-2 px-2 ${
+                      message.isSent ? 'flex-row-reverse' : 'flex-row'
+                    }`}>
+                      <div className={`flex items-center space-x-2 ${
+                        message.isSent ? 'flex-row-reverse space-x-reverse' : ''
+                      }`}>
+                        <p className={`text-xs font-medium ${
+                          message.isSent
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-500 dark:text-gray-400"
+                        }`}>
+                          {formatMessageTime(message.createdAt)}
+                        </p>
+                        
+                        {message.isSent && (
+                          <div className="flex items-center">
+                            <MessageStatus
+                              status={message.isRead ? "read" : message.status}
+                              isFromSender={true}
+                              className="scale-90"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Reaction placeholder */}
+                    <div className={`opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute ${
+                      message.isSent ? '-left-8 top-1/2' : '-right-8 top-1/2'
+                    } transform -translate-y-1/2`}>
+                      <button className="w-6 h-6 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110">
+                        <span className="text-xs">❤️</span>
+                      </button>
                     </div>
                   </div>
 
@@ -783,7 +836,7 @@ const Messages: React.FC<MessagesProps> = ({
                         Date.now() - new Date(message.createdAt).getTime()
                       }
                       onDeleteMessage={handleDeleteMessage}
-                      className={message.isSent ? "order-first" : "order-last"}
+                      className={`transition-opacity duration-200 ${message.isSent ? "order-first mr-2" : "order-last ml-2"}`}
                     />
                   )}
                 </div>
@@ -792,42 +845,67 @@ const Messages: React.FC<MessagesProps> = ({
           )}
         </div>
 
-        <div className="bg-white dark:bg-[#262335] border-t border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Type a message..."
-                className="w-full px-4 py-2 pr-12 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1a1625] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              />
-              <div
-                className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                ref={emojiPickerRef}
-              >
-                <button
-                  onClick={handleEmojiClick}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                  aria-label="Add emoji"
+        <div className="bg-gradient-to-r from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50 p-6">
+          <div className="flex items-end gap-4">
+            {/* Quick action buttons */}
+            <div className="flex items-center space-x-2">
+              <button className="p-3 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-2xl transition-all duration-200 group hover:scale-110">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+              
+              <button className="p-3 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-2xl transition-all duration-200 group hover:scale-110">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 relative group">
+              {/* Animated border gradient */}
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 blur-sm"></div>
+              
+              <div className="relative">
+                <input
+                  type="text"
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Type something amazing... ✨"
+                  className="w-full px-6 py-4 pr-16 rounded-3xl border-2 border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-300 shadow-sm focus:shadow-lg font-medium"
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                />
+                
+                {/* Emoji button */}
+                <div
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2"
+                  ref={emojiPickerRef}
                 >
-                  <span className="text-xl">😊</span>
-                </button>
-                {showEmojiPicker && (
-                  <div className="absolute bottom-full right-0 mb-2 z-50">
-                    <EmojiPicker onEmojiClick={handleEmojiSelect} />
-                  </div>
-                )}
+                  <button
+                    onClick={handleEmojiClick}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition-all duration-200 hover:scale-110"
+                    aria-label="Add emoji"
+                  >
+                    <span className="text-xl">😊</span>
+                  </button>
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-full right-0 mb-4 z-50 shadow-2xl rounded-2xl overflow-hidden">
+                      <EmojiPicker onEmojiClick={handleEmojiSelect} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+            
+            {/* Send button */}
             <button
               onClick={handleSendMessage}
               disabled={!messageText.trim()}
-              className="p-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 rounded-full transition-colors"
+              className="group relative p-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:shadow-none transform hover:scale-110 disabled:transform-none"
             >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <svg
-                className="w-5 h-5 text-white"
+                className="relative w-6 h-6 text-white transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-200"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -842,6 +920,17 @@ const Messages: React.FC<MessagesProps> = ({
               </svg>
             </button>
           </div>
+          
+          {/* Typing indicator placeholder */}
+          {messageText.length > 0 && (
+            <div className="mt-3 flex items-center justify-center">
+              <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  Press Enter to send
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
