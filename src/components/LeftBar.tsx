@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import More from "@/options/More";
 import Icon from "./Icon";
+import WhisperModal from "./WhisperModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
@@ -11,6 +12,8 @@ import Home from "@/content/Home";
 import Messages from "@/content/Messages";
 import Explore from "@/content/Explore";
 import Profile from "@/content/Profile";
+import Bookmarks from "@/content/Bookmarks";
+import Notifications from "@/content/Notifications";
 
 const menulist = [
   {
@@ -38,7 +41,7 @@ const menulist = [
     name: "Notification",
     content: (
       <div>
-        <TranslatedText>Notification Content</TranslatedText>
+        <Notifications />
       </div>
     ),
     icon: "notification.svg",
@@ -58,7 +61,7 @@ const menulist = [
     name: "Bookmarks",
     content: (
       <div>
-        <TranslatedText>Bookmarks Content</TranslatedText>
+        <Bookmarks />
       </div>
     ),
     icon: "bookmark.svg",
@@ -93,6 +96,7 @@ const LeftBar = ({
 }) => {
   const { theme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showWhisperModal, setShowWhisperModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Generate display name and username
@@ -132,6 +136,16 @@ const LeftBar = ({
     };
   }, [onMenuClick]);
 
+  const handlePostCreated = () => {
+    // Refresh home page if currently on home
+    if (currentPage === "Home") {
+      const homeMenuItem = menulist.find((item) => item.name === "Home");
+      if (homeMenuItem) {
+        onMenuClick(homeMenuItem.content, homeMenuItem.name);
+      }
+    }
+  };
+
   return (
     <div className="h-screen sticky top-0 bg-white dark:bg-[#262335] text-black dark:text-white flex flex-col justify-between pt-2 pb-10 transition-colors duration-300">
       <div>
@@ -164,20 +178,19 @@ const LeftBar = ({
             );
           })}
         </div>
-        <Link
-          href="/"
+        <button
+          onClick={() => setShowWhisperModal(true)}
           className="bg-blue-500 text-white rounded-full font-bold w-12 h-12 flex items-center justify-center xxl:hidden mt-10 hover:bg-blue-600 transition-all duration-200 ease-in-out"
         >
           <Icon name="post.svg" width={24} height={24} className="text-white" />
-        </Link>
-        <Link href="/">
-          <button
-            type="button"
-            className="hidden xxl:block bg-blue-500 text-white rounded-full px-20 py-2 mt-10 font-bold text-sm hover:bg-blue-600 transition-all duration-200 ease-in-out"
-          >
-            <TranslatedText>whispers</TranslatedText>
-          </button>
-        </Link>
+        </button>
+        <button
+          onClick={() => setShowWhisperModal(true)}
+          type="button"
+          className="hidden xxl:block bg-blue-500 text-white rounded-full px-20 py-2 mt-10 font-bold text-sm hover:bg-blue-600 transition-all duration-200 ease-in-out"
+        >
+          <TranslatedText>whispers</TranslatedText>
+        </button>
       </div>
       <div className="relative" ref={dropdownRef}>
         <div className="flex items-center justify-between mt-6 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full cursor-pointer transition-all duration-200 ease-in-out">
@@ -236,6 +249,14 @@ const LeftBar = ({
           </div>
         )}
       </div>
+
+      {/* Whisper Modal */}
+      <WhisperModal
+        isOpen={showWhisperModal}
+        onClose={() => setShowWhisperModal(false)}
+        onPostCreated={handlePostCreated}
+        user={user}
+      />
     </div>
   );
 };

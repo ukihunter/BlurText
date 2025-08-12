@@ -1,9 +1,281 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
+import WhisperModal from "@/components/WhisperModal";
+import Icon from "@/components/Icon";
+
+interface Post {
+  _id: string;
+  userId: string;
+  username: string;
+  content: string;
+  images?: string[];
+  tags: string[];
+  likes: number;
+  likedBy: string[];
+  comments: number;
+  shares: number;
+  createdAt: string;
+  // Add interactive state tracking
+  isLikedByUser?: boolean;
+  isBookmarkedByUser?: boolean;
+}
 
 const Home = () => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showWhisperModal, setShowWhisperModal] = useState(false);
+  const [user, setUser] = useState<{ username: string; id: string } | null>(
+    null
+  );
+  const [postContent, setPostContent] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const availableTags = [
+    "technology",
+    "art",
+    "music",
+    "sports",
+    "travel",
+    "food",
+    "gaming",
+    "movies",
+    "fitness",
+    "lifestyle",
+    "news",
+    "opinion",
+    "funny",
+    "inspiration",
+    "question",
+    "personal",
+    "work",
+    "study",
+  ];
+
+  useEffect(() => {
+    fetchPosts();
+
+    // Listen for user changes
+    const handleUserChange = (event: CustomEvent) => {
+      setUser(event.detail);
+    };
+
+    window.addEventListener("userChanged", handleUserChange as EventListener);
+    return () => {
+      window.removeEventListener(
+        "userChanged",
+        handleUserChange as EventListener
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    // Auto-resize textarea
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
+    }
+  }, [postContent]);
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch("/api/posts", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data.posts || []);
+      } else {
+        console.error("Failed to fetch posts");
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleQuickPost = async () => {
+    if (!postContent.trim() || selectedTags.length === 0) return;
+
+    try {
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          content: postContent.trim(),
+          images: [],
+          tags: selectedTags,
+        }),
+      });
+
+      if (response.ok) {
+        setPostContent("");
+        setSelectedTags([]);
+        fetchPosts(); // Refresh posts
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+    }
+  };
+
+  const handlePostCreated = () => {
+    fetchPosts();
+  };
+
+  const handleLike = async (postId: string) => {
+    try {
+      const response = await fetch("/api/posts/like", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update the post in local state
+        setPosts(posts.map(post => 
+          post._id === postId 
+            ? { 
+                ...post, 
+                likes: data.likes, 
+                isLikedByUser: data.isLiked 
+              }
+            : post
+        ));
+      }
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
+  };
+
+  const handleBookmark = async (postId: string) => {
+    try {
+      const response = await fetch("/api/posts/bookmark", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update the post in local state
+        setPosts(posts.map(post => 
+          post._id === postId 
+            ? { 
+                ...post, 
+                isBookmarkedByUser: data.isBookmarked 
+              }
+            : post
+        ));
+      }
+    } catch (error) {
+      console.error("Error bookmarking post:", error);
+    }
+  };
+
+  const handleShare = async (postId: string) => {
+    try {
+      const response = await fetch("/api/posts/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update the post in local state
+        setPosts(posts.map(post => 
+          post._id === postId 
+            ? { 
+                ...post, 
+                shares: data.shares 
+              }
+            : post
+        ));
+        
+        // Show success message or copy link to clipboard
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
+          alert("Link copied to clipboard!");
+        }
+      }
+    } catch (error) {
+      console.error("Error sharing post:", error);
+    }
+  };
+
+  const handleComment = (postId: string) => {
+    // For now, just show an alert. In a full implementation, 
+    // you'd open a comment modal or navigate to post detail
+    const content = prompt("Add a comment:");
+    if (content?.trim()) {
+      addComment(postId, content);
+    }
+  };
+
+  const addComment = async (postId: string, content: string) => {
+    try {
+      const response = await fetch("/api/posts/comments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ postId, content }),
+      });
+
+      if (response.ok) {
+        // Update comment count in local state
+        setPosts(posts.map(post => 
+          post._id === postId 
+            ? { 
+                ...post, 
+                comments: post.comments + 1 
+              }
+            : post
+        ));
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHours < 1) return "now";
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
+
   return (
     <div className="bg-[#262335] ">
       {/* Header */}
@@ -22,9 +294,9 @@ const Home = () => {
       <div className="max-w-4xl mx-auto mb-2 ">
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl  shadow-xl border border-white/20 dark:border-slate-700/30 p-6">
           <div className="flex items-start space-x-4">
-            <div className="w-10 h-10 flex-shrink-0 overflow-hidden relative">
+            <div className="w-10 h-10 flex-shrink-0 overflow-hidden relative rounded-full">
               <Image
-                src={generateConsistentAvatar("youruser")}
+                src={generateConsistentAvatar(user?.username || "anonymous")}
                 alt="Your Avatar"
                 fill
                 className="object-cover"
@@ -33,29 +305,56 @@ const Home = () => {
             <div className="flex-1">
               <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-4 mb-4">
                 <textarea
+                  ref={textareaRef}
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
                   placeholder="Share whispers..."
                   className="w-full bg-transparent placeholder-slate-500 dark:placeholder-slate-400 resize-none border-none outline-none text-lg"
                   rows={1}
                 />
               </div>
+
+              {/* Tags Selection */}
+              {postContent.trim() && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <TranslatedText>Add tags (required)</TranslatedText>
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.slice(0, 8).map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          selectedTags.includes(tag)
+                            ? "bg-blue-500 text-white border-blue-500"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500"
+                        }`}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="flex space-x-3">
-                  <button className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-purple-100 dark:bg-purple-200/30">
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span className="text-sm font-medium">Photo</span>
+                  <button
+                    onClick={() => setShowWhisperModal(true)}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-purple-100 dark:bg-purple-200/30"
+                  >
+                    <Icon name="image.svg" width={20} height={20} />
+                    <span className="text-sm font-medium">
+                      <TranslatedText>Photo</TranslatedText>
+                    </span>
                   </button>
                 </div>
-                <button className=" text-white border-white border px-8 py-2 rounded-full font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg">
+                <button
+                  onClick={handleQuickPost}
+                  disabled={!postContent.trim() || selectedTags.length === 0}
+                  className="text-white border-white border px-8 py-2 rounded-full font-semibold hover:bg-blue-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <TranslatedText>Share</TranslatedText>
                 </button>
               </div>
@@ -64,537 +363,165 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Posts Feed */}
-      <div className="max-w-4xl mx-auto space-y-6 p-3">
-        {/* Featured Post */}
-        <div className="bg-white/80 dark:bg-[#262335]  rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden relative">
-                <Image
-                  src={generateConsistentAvatar("manusha")}
-                  alt="Manusha"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-800 dark:text-slate-200">
-                  Manusha
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm">
-                  @manusha • 2 hours ago
-                </p>
-              </div>
-              <div className="ml-auto"></div>
-            </div>
-            <p className="text-slate-700 dark:text-slate-100 text-lg leading-relaxed mb-4">
-              eka eka keln kaiwath rasa mihiri katah Taniya thmi mae hita gath
-              ekama kena 🐘❤ #Thaniya
+      {/* Loading State */}
+      {isLoading && (
+        <div className="max-w-4xl mx-auto p-6 text-center">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-300">
+              <TranslatedText>Loading whispers...</TranslatedText>
             </p>
-            <div className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 mb-4 flex items-center justify-center relative">
-              <img
-                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstatic.dw.com%2Fimage%2F62865468_605.jpg&f=1&nofb=1&ipt=0a565863664a1c548b050fcbc3d386337f57f3c94b6ed73c770ce71101475fbe"
-                alt="Design System Preview"
-                className="object-cover rounded-2xl"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-6">
-                <button className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">24</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">156</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-              <button className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 px-4 py-2 rounded-xl transition-colors">
-                <svg
-                  className="w-5 h-5 text-slate-600 dark:text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                  />
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
+      )}
 
-        {/* Regular Posts Grid */}
-        <div className="space-y-6">
-          {/* Post 1 */}
-          <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
-                <Image
-                  src={generateConsistentAvatar("mariajohnson")}
-                  alt="Maria Johnson"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white">Maria Johnson</h4>
-                <p className="text-slate-400 text-sm">
-                  Travel Blogger • 4 hours ago
-                </p>
-              </div>
-            </div>
-            <p className="text-slate-200 text-lg leading-relaxed mb-4">
-              Beautiful morning hike today! There&apos;s nothing quite like
-              watching the sunrise from the mountain top. Nature always reminds
-              me what&apos;s truly important. 🌅
+      {/* Posts Feed */}
+      <div className="max-w-4xl mx-auto space-y-6 p-3">
+        {posts.length === 0 && !isLoading && (
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 p-8 text-center">
+            <p className="text-slate-600 dark:text-slate-300 text-lg">
+              <TranslatedText>
+                No whispers yet. Be the first to share!
+              </TranslatedText>
             </p>
-            <div className="bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 rounded-2xl h-64 mb-4"></div>
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-6">
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">12</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-red-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">89</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-              <button className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl transition-colors">
-                <svg
-                  className="w-5 h-5 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                  />
-                </svg>
-              </button>
-            </div>
           </div>
+        )}
 
-          {/* Post 2 */}
-          <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
-                <Image
-                  src={generateConsistentAvatar("davidkim")}
-                  alt="David Kim"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white">David Kim</h4>
-                <p className="text-slate-400 text-sm">
-                  Productivity Coach • 6 hours ago
-                </p>
-              </div>
-            </div>
-            <p className="text-slate-200 text-lg leading-relaxed mb-4">
-              Just finished reading an amazing book about productivity! 📚 The
-              key insight: focus on systems, not goals. Game-changer for sure.
-            </p>
-            <div className="bg-slate-700/50 rounded-2xl p-4 mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-20 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-xl flex-shrink-0"></div>
-                <div>
-                  <h5 className="font-semibold text-white text-lg">
-                    Atomic Habits
-                  </h5>
-                  <p className="text-slate-400 text-sm">by James Clear</p>
-                  <p className="text-slate-300 text-sm mt-2">
-                    An easy way to build good habits and break bad ones...
+        {posts.map((post) => (
+          <div
+            key={post._id}
+            className="bg-white/80 dark:bg-[#262335] rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden"
+          >
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-12 h-12 rounded-full overflow-hidden relative">
+                  <Image
+                    src={generateConsistentAvatar(post.username)}
+                    alt={post.username}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-200 capitalize">
+                    {post.username}
+                  </h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    @{post.username.toLowerCase()} •{" "}
+                    {formatTimeAgo(post.createdAt)}
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-6">
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">8</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-red-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">34</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-              <button className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl transition-colors">
-                <svg
-                  className="w-5 h-5 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
 
-          {/* Post 3 */}
-          <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
-                <Image
-                  src={generateConsistentAvatar("sarahlee")}
-                  alt="Sarah Lee"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white">Sarah Lee</h4>
-                <p className="text-slate-400 text-sm">
-                  Chef & Food Blogger • 8 hours ago
-                </p>
-              </div>
-            </div>
-            <p className="text-slate-200 text-lg leading-relaxed mb-4">
-              Working on a new recipe today! Experimenting with fusion cuisine -
-              mixing Korean and Italian flavors. The kimchi carbonara turned out
-              amazing! 🍝
-            </p>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl h-48"></div>
-              <div className="bg-gradient-to-br from-red-400 to-pink-500 rounded-2xl h-48"></div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-6">
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">15</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-red-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">67</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-              <button className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl transition-colors">
-                <svg
-                  className="w-5 h-5 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
+              <p className="text-slate-700 dark:text-slate-100 text-lg leading-relaxed mb-4">
+                {post.content}
+              </p>
 
-          {/* Post 4 */}
-          <div className="bg-slate-800/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-700/30 p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden relative">
-                <Image
-                  src={generateConsistentAvatar("ryanchen")}
-                  alt="Ryan Chen"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-white">Ryan Chen</h4>
-                <p className="text-slate-400 text-sm">
-                  Senior Developer • 12 hours ago
-                </p>
-              </div>
-            </div>
-            <p className="text-slate-200 text-lg leading-relaxed mb-4">
-              Quick coding tip: Use meaningful variable names! Your future self
-              (and your teammates) will thank you. Code should tell a story. 💻
-            </p>
-            <div className="bg-slate-900/80 rounded-2xl p-4 mb-4 border border-slate-700/50">
-              <div className="text-green-400 font-mono text-sm">
-                <div className="text-slate-500">{`// Good ✓`}</div>
-                <div className="text-blue-400">const</div>{" "}
-                <span className="text-yellow-300">userAccountBalance</span> ={" "}
-                <span className="text-green-300">1250.75</span>;
-                <br />
-                <div className="text-slate-500 mt-2">{`// Bad ✗`}</div>
-                <div className="text-blue-400">const</div>{" "}
-                <span className="text-yellow-300">uab</span> ={" "}
-                <span className="text-green-300">1250.75</span>;
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex space-x-6">
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+              {/* Tags */}
+              {post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {post.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">23</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-red-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-medium">45</span>
-                </button>
-                <button className="flex items-center space-x-2 text-slate-400 hover:text-blue-400 transition-colors">
-                  <div className="p-2 rounded-xl hover:bg-slate-700/50">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-              <button className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl transition-colors">
-                <svg
-                  className="w-5 h-5 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Images */}
+              {post.images && post.images.length > 0 && (
+                <div
+                  className={`grid gap-3 mb-4 ${
+                    post.images.length === 1
+                      ? "grid-cols-1"
+                      : post.images.length === 2
+                      ? "grid-cols-2"
+                      : "grid-cols-2"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                  />
-                </svg>
-              </button>
+                  {post.images.map((image, index) => (
+                    <div
+                      key={index}
+                      className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 flex items-center justify-center relative"
+                    >
+                      <Image
+                        src={image}
+                        alt={`Post image ${index + 1}`}
+                        fill
+                        className="object-cover rounded-2xl"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex space-x-8">
+                  <button 
+                    onClick={() => handleComment(post._id)}
+                    className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                  >
+                    <div className="p-2 rounded-full group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                      <Icon name="comment.svg" width={18} height={18} />
+                    </div>
+                    <span className="text-sm font-medium">{post.comments}</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => handleLike(post._id)}
+                    className={`flex items-center space-x-2 transition-colors group ${
+                      post.isLikedByUser 
+                        ? "text-red-500 dark:text-red-400" 
+                        : "text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+                    }`}
+                  >
+                    <div className={`p-2 rounded-full transition-colors ${
+                      post.isLikedByUser
+                        ? "bg-red-50 dark:bg-red-900/20"
+                        : "group-hover:bg-red-50 dark:group-hover:bg-red-900/20"
+                    }`}>
+                      <Icon name="like.svg" width={18} height={18} />
+                    </div>
+                    <span className="text-sm font-medium">{post.likes}</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => handleShare(post._id)}
+                    className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
+                  >
+                    <div className="p-2 rounded-full group-hover:bg-green-50 dark:group-hover:bg-green-900/20 transition-colors">
+                      <Icon name="share.svg" width={18} height={18} />
+                    </div>
+                    <span className="text-sm font-medium">{post.shares}</span>
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => handleBookmark(post._id)}
+                  className={`p-2 rounded-full transition-all duration-200 ${
+                    post.isBookmarkedByUser
+                      ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg"
+                      : "text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  }`}
+                >
+                  <Icon name="bookmark.svg" width={18} height={18} />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
+
+      {/* Whisper Modal */}
+      <WhisperModal
+        isOpen={showWhisperModal}
+        onClose={() => setShowWhisperModal(false)}
+        onPostCreated={handlePostCreated}
+        user={user}
+      />
     </div>
   );
 };
