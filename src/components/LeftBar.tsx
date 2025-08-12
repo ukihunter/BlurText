@@ -69,7 +69,11 @@ const menulist = [
   {
     id: 9,
     name: "Profile",
-    content: <Profile />,
+    content: (
+      <div>
+        <Profile />
+      </div>
+    ),
     icon: "profile.svg",
   },
   {

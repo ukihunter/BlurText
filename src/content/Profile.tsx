@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 import FollowersList from "@/components/FollowersList";
+import WhisperModal from "@/components/WhisperModal";
+import CommentModal from "@/components/CommentModal";
+import Icon from "@/components/Icon";
 
 interface User {
   id: string;
@@ -19,6 +22,22 @@ interface ProfileStats {
   followingCount: number;
 }
 
+interface Post {
+  _id: string;
+  userId: string;
+  username: string;
+  content: string;
+  images?: string[];
+  tags: string[];
+  likes: number;
+  likedBy: string[];
+  comments: number;
+  shares: number;
+  createdAt: string;
+  isLikedByUser?: boolean;
+  isBookmarkedByUser?: boolean;
+}
+
 const Profile: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<ProfileStats>({
@@ -26,11 +45,21 @@ const Profile: React.FC = () => {
     followingCount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  // Force initial state to false and prevent any external state interference
   const [showFollowersList, setShowFollowersList] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Fix hydration issues by only rendering after mount
+  // New state for posts and modals
+  const [activeTab, setActiveTab] = useState<"whispers" | "likes">("whispers");
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [likedPosts, setLikedPosts] = useState<Post[]>([]);
+  const [isPostsLoading, setIsPostsLoading] = useState(false);
+  const [showWhisperModal, setShowWhisperModal] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  // Fix hydration issues by only rendering after mount and ensure clean state
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -88,6 +117,175 @@ const Profile: React.FC = () => {
     fetchProfileStats();
   }, []);
 
+  // Fetch user's own posts
+  const fetchUserPosts = useCallback(async () => {
+    if (!user?.id) return;
+
+    setIsPostsLoading(true);
+    try {
+      const response = await fetch(`/api/users/posts?userId=${user.id}`, {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserPosts(data.posts || []);
+      }
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+    } finally {
+      setIsPostsLoading(false);
+    }
+  }, [user?.id]);
+
+  // Fetch user posts when user data is available
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserPosts();
+    }
+  }, [user?.id, fetchUserPosts]);
+
+  // Fetch posts the user has liked
+  const fetchLikedPosts = async () => {
+    setIsPostsLoading(true);
+    try {
+      const response = await fetch("/api/users/liked-posts", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLikedPosts(data.posts || []);
+      }
+    } catch (error) {
+      console.error("Error fetching liked posts:", error);
+    } finally {
+      setIsPostsLoading(false);
+    }
+  };
+
+  // Handle tab change and fetch appropriate posts
+  const handleTabChange = (tab: "whispers" | "likes") => {
+    setActiveTab(tab);
+    if (tab === "likes" && likedPosts.length === 0) {
+      fetchLikedPosts();
+    }
+  };
+
+  // Handle post interactions
+  const handleLike = async (postId: string) => {
+    try {
+      const response = await fetch("/api/posts/like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update both userPosts and likedPosts arrays
+        const updatePost = (post: Post) =>
+          post._id === postId
+            ? { ...post, likes: data.likes, isLikedByUser: data.isLiked }
+            : post;
+
+        setUserPosts((prev) => prev.map(updatePost));
+        setLikedPosts((prev) => prev.map(updatePost));
+
+        // If post was unliked, remove from liked posts
+        if (!data.isLiked && activeTab === "likes") {
+          setLikedPosts((prev) => prev.filter((post) => post._id !== postId));
+        }
+      }
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
+  };
+
+  const handleBookmark = async (postId: string) => {
+    try {
+      const response = await fetch("/api/posts/bookmark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatePost = (post: Post) =>
+          post._id === postId
+            ? { ...post, isBookmarkedByUser: data.isBookmarked }
+            : post;
+
+        setUserPosts((prev) => prev.map(updatePost));
+        setLikedPosts((prev) => prev.map(updatePost));
+      }
+    } catch (error) {
+      console.error("Error bookmarking post:", error);
+    }
+  };
+
+  const handleShare = async (postId: string) => {
+    try {
+      const response = await fetch("/api/posts/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatePost = (post: Post) =>
+          post._id === postId ? { ...post, shares: data.shares } : post;
+
+        setUserPosts((prev) => prev.map(updatePost));
+        setLikedPosts((prev) => prev.map(updatePost));
+
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(
+            `${window.location.origin}/post/${postId}`
+          );
+          alert("Link copied to clipboard!");
+        }
+      }
+    } catch (error) {
+      console.error("Error sharing post:", error);
+    }
+  };
+
+  const handleComment = (postId: string) => {
+    const allPosts = [...userPosts, ...likedPosts];
+    const post = allPosts.find((p) => p._id === postId);
+    if (post) {
+      setSelectedPost(post);
+      setShowCommentModal(true);
+    }
+  };
+
+  const handleCommentAdded = () => {
+    // Refresh posts to get updated comment count
+    fetchUserPosts();
+    if (activeTab === "likes") {
+      fetchLikedPosts();
+    }
+  };
+
+  const handlePostCreated = () => {
+    fetchUserPosts(); // Refresh user posts after creating a new one
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHours < 1) return "now";
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
+
   // Listen for user changes to update profile data
   useEffect(() => {
     const handleUserChange = () => {
@@ -125,15 +323,10 @@ const Profile: React.FC = () => {
     fetchUserData();
   };
 
-  if (showFollowersList) {
-    return <FollowersList onBack={handleBackFromFollowers} />;
-  }
+  // Clean up all debug logs for production
 
-  if (showEditProfile) {
-    return <EditProfile user={user} onBack={handleBackFromEdit} />;
-  }
-
-  if (!mounted || isLoading) {
+  // Early return for hydration safety
+  if (!mounted) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-gray-500 dark:text-gray-400">
@@ -143,6 +336,18 @@ const Profile: React.FC = () => {
     );
   }
 
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500 dark:text-gray-400">
+          <TranslatedText>Loading...</TranslatedText>
+        </div>
+      </div>
+    );
+  }
+
+  // Render error state
   if (!user) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -153,6 +358,16 @@ const Profile: React.FC = () => {
     );
   }
 
+  // Render conditional components based on state - ONLY if explicitly set to true
+  if (showFollowersList === true) {
+    return <FollowersList onBack={handleBackFromFollowers} />;
+  }
+
+  if (showEditProfile === true) {
+    return <EditProfile user={user} onBack={handleBackFromEdit} />;
+  }
+
+  // Default: render main profile view
   return (
     <div className="min-h-screen bg-white dark:bg-[#262335]">
       {/* Anonymous Header */}
@@ -313,7 +528,14 @@ const Profile: React.FC = () => {
         {/* Anonymous Navigation */}
         <div className="bg-white dark:bg-[#262335] border-b border-gray-200 dark:border-gray-800 sticky top-[88px] z-40">
           <div className="flex">
-            <button className="flex-1 py-4 px-4 text-center font-semibold text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all duration-300 relative">
+            <button
+              onClick={() => handleTabChange("whispers")}
+              className={`flex-1 py-4 px-4 text-center font-semibold border-b-2 transition-all duration-300 relative ${
+                activeTab === "whispers"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                  : "text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-800 dark:hover:text-gray-300"
+              }`}
+            >
               <span className="flex items-center justify-center gap-2">
                 <svg
                   className="w-4 h-4"
@@ -332,7 +554,14 @@ const Profile: React.FC = () => {
               </span>
             </button>
 
-            <button className="flex-1 py-4 px-4 text-center font-semibold text-gray-600 dark:text-gray-400 border-b-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-800 dark:hover:text-gray-300 transition-all duration-300">
+            <button
+              onClick={() => handleTabChange("likes")}
+              className={`flex-1 py-4 px-4 text-center font-semibold border-b-2 transition-all duration-300 ${
+                activeTab === "likes"
+                  ? "text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                  : "text-gray-600 dark:text-gray-400 border-transparent hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-800 dark:hover:text-gray-300"
+              }`}
+            >
               <span className="flex items-center justify-center gap-2">
                 <svg
                   className="w-4 h-4"
@@ -353,45 +582,384 @@ const Profile: React.FC = () => {
           </div>
         </div>
 
-        {/* Content Area - Anonymous Empty State */}
+        {/* Content Area */}
         <div className="bg-white dark:bg-[#262335] min-h-96">
-          <div className="px-4 md:px-6 py-20 text-center">
-            <div className="max-w-lg mx-auto">
-              {/* Anonymous Empty State */}
-
-              <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                <TranslatedText>Your whispers Remain silent</TranslatedText>
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg leading-relaxed">
-                <TranslatedText>
-                  Share your thoughts anonymously. Your words will echo in the
-                  shadows, heard but never traced.
-                </TranslatedText>
-              </p>
-              <button className="group px-4 py-4 bg-blue-500 font-semibold rounded-full transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 mx-auto">
-                <svg
-                  className="w-5 h-5 group-hover:scale-110 transition-transform"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-                <TranslatedText>Send your first whisper</TranslatedText>
-              </button>
-              <p className="mt-4 text-xs text-gray-500 dark:text-gray-500">
-                <TranslatedText>
-                  End-to-end encrypted • Fully anonymous
-                </TranslatedText>
+          {isPostsLoading ? (
+            // Loading State
+            <div className="px-4 md:px-6 py-20 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">
+                <TranslatedText>Loading...</TranslatedText>
               </p>
             </div>
-          </div>
+          ) : activeTab === "whispers" ? (
+            // Whispers Tab
+            userPosts.length === 0 ? (
+              // Empty State for Whispers
+              <div className="px-4 md:px-6 py-20 text-center">
+                <div className="max-w-lg mx-auto">
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                    <TranslatedText>Your whispers Remain silent</TranslatedText>
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg leading-relaxed">
+                    <TranslatedText>
+                      Share your thoughts anonymously. Your words will echo in
+                      the shadows, heard but never traced.
+                    </TranslatedText>
+                  </p>
+                  <button
+                    onClick={() => setShowWhisperModal(true)}
+                    className="group px-4 py-4 bg-blue-500 text-white font-semibold rounded-full transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 mx-auto hover:bg-blue-600"
+                  >
+                    <svg
+                      className="w-5 h-5 group-hover:scale-110 transition-transform"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                    <TranslatedText>Send your first whisper</TranslatedText>
+                  </button>
+                  <p className="mt-4 text-xs text-gray-500 dark:text-gray-500">
+                    <TranslatedText>
+                      End-to-end encrypted • Fully anonymous
+                    </TranslatedText>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              // User Posts List
+              <div className="p-4 space-y-6">
+                {userPosts.map((post) => (
+                  <div
+                    key={post._id}
+                    className="bg-white/80 dark:bg-[#262335] rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden relative">
+                          <Image
+                            src={generateConsistentAvatar(post.username)}
+                            alt={post.username}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-slate-800 dark:text-slate-200 capitalize">
+                            {post.username}
+                          </h3>
+                          <p className="text-slate-500 dark:text-slate-400 text-sm">
+                            @{post.username.toLowerCase()} •{" "}
+                            {formatTimeAgo(post.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="text-slate-700 dark:text-slate-100 text-lg leading-relaxed mb-4">
+                        {post.content}
+                      </p>
+
+                      {/* Tags */}
+                      {post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {post.tags.map((tag, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Images */}
+                      {post.images && post.images.length > 0 && (
+                        <div
+                          className={`grid gap-3 mb-4 ${
+                            post.images.length === 1
+                              ? "grid-cols-1"
+                              : post.images.length === 2
+                              ? "grid-cols-2"
+                              : "grid-cols-2"
+                          }`}
+                        >
+                          {post.images.map((image, index) => (
+                            <div
+                              key={index}
+                              className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 flex items-center justify-center relative"
+                            >
+                              <Image
+                                src={image}
+                                alt={`Post image ${index + 1}`}
+                                fill
+                                className="object-cover rounded-2xl"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Interaction Buttons */}
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <div className="flex space-x-8">
+                          <button
+                            onClick={() => handleComment(post._id)}
+                            className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                          >
+                            <div className="p-2 rounded-full group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                              <Icon name="comment.svg" width={18} height={18} />
+                            </div>
+                            <span className="text-sm font-medium">
+                              {post.comments}
+                            </span>
+                          </button>
+
+                          <button
+                            onClick={() => handleLike(post._id)}
+                            className={`flex items-center space-x-2 transition-colors group ${
+                              post.isLikedByUser
+                                ? "text-red-500 dark:text-red-400"
+                                : "text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+                            }`}
+                          >
+                            <div
+                              className={`p-2 rounded-full transition-colors ${
+                                post.isLikedByUser
+                                  ? "bg-red-50 dark:bg-red-900/20"
+                                  : "group-hover:bg-red-50 dark:group-hover:bg-red-900/20"
+                              }`}
+                            >
+                              <Icon name="like.svg" width={18} height={18} />
+                            </div>
+                            <span className="text-sm font-medium">
+                              {post.likes}
+                            </span>
+                          </button>
+
+                          <button
+                            onClick={() => handleShare(post._id)}
+                            className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
+                          >
+                            <div className="p-2 rounded-full group-hover:bg-green-50 dark:group-hover:bg-green-900/20 transition-colors">
+                              <Icon name="share.svg" width={18} height={18} />
+                            </div>
+                            <span className="text-sm font-medium">
+                              {post.shares}
+                            </span>
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => handleBookmark(post._id)}
+                          className={`p-2 rounded-full transition-all duration-200 ${
+                            post.isBookmarkedByUser
+                              ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg"
+                              : "text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          }`}
+                        >
+                          <Icon name="bookmark.svg" width={18} height={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : // Likes Tab
+          likedPosts.length === 0 ? (
+            // Empty State for Likes
+            <div className="px-4 md:px-6 py-20 text-center">
+              <div className="max-w-lg mx-auto">
+                <div className="text-gray-500 dark:text-gray-400 mb-4">
+                  <Icon
+                    name="like.svg"
+                    width={48}
+                    height={48}
+                    className="mx-auto mb-4 opacity-50"
+                  />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  <TranslatedText>No liked posts yet</TranslatedText>
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed">
+                  <TranslatedText>
+                    When you like posts, they&apos;ll appear here for easy
+                    access.
+                  </TranslatedText>
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Liked Posts List
+            <div className="p-4 space-y-6">
+              {likedPosts.map((post) => (
+                <div
+                  key={post._id}
+                  className="bg-white/80 dark:bg-[#262335] rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 overflow-hidden"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 rounded-full overflow-hidden relative">
+                        <Image
+                          src={generateConsistentAvatar(post.username)}
+                          alt={post.username}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-200 capitalize">
+                          {post.username}
+                        </h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                          @{post.username.toLowerCase()} •{" "}
+                          {formatTimeAgo(post.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="text-slate-700 dark:text-slate-100 text-lg leading-relaxed mb-4">
+                      {post.content}
+                    </p>
+
+                    {/* Tags */}
+                    {post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {post.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Images */}
+                    {post.images && post.images.length > 0 && (
+                      <div
+                        className={`grid gap-3 mb-4 ${
+                          post.images.length === 1
+                            ? "grid-cols-1"
+                            : post.images.length === 2
+                            ? "grid-cols-2"
+                            : "grid-cols-2"
+                        }`}
+                      >
+                        {post.images.map((image, index) => (
+                          <div
+                            key={index}
+                            className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 flex items-center justify-center relative"
+                          >
+                            <Image
+                              src={image}
+                              alt={`Post image ${index + 1}`}
+                              fill
+                              className="object-cover rounded-2xl"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Interaction Buttons */}
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex space-x-8">
+                        <button
+                          onClick={() => handleComment(post._id)}
+                          className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
+                        >
+                          <div className="p-2 rounded-full group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                            <Icon name="comment.svg" width={18} height={18} />
+                          </div>
+                          <span className="text-sm font-medium">
+                            {post.comments}
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={() => handleLike(post._id)}
+                          className={`flex items-center space-x-2 transition-colors group ${
+                            post.isLikedByUser
+                              ? "text-red-500 dark:text-red-400"
+                              : "text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
+                          }`}
+                        >
+                          <div
+                            className={`p-2 rounded-full transition-colors ${
+                              post.isLikedByUser
+                                ? "bg-red-50 dark:bg-red-900/20"
+                                : "group-hover:bg-red-50 dark:group-hover:bg-red-900/20"
+                            }`}
+                          >
+                            <Icon name="like.svg" width={18} height={18} />
+                          </div>
+                          <span className="text-sm font-medium">
+                            {post.likes}
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={() => handleShare(post._id)}
+                          className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
+                        >
+                          <div className="p-2 rounded-full group-hover:bg-green-50 dark:group-hover:bg-green-900/20 transition-colors">
+                            <Icon name="share.svg" width={18} height={18} />
+                          </div>
+                          <span className="text-sm font-medium">
+                            {post.shares}
+                          </span>
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => handleBookmark(post._id)}
+                        className={`p-2 rounded-full transition-all duration-200 ${
+                          post.isBookmarkedByUser
+                            ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg"
+                            : "text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        }`}
+                      >
+                        <Icon name="bookmark.svg" width={18} height={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Modals */}
+        <WhisperModal
+          isOpen={showWhisperModal}
+          onClose={() => setShowWhisperModal(false)}
+          onPostCreated={handlePostCreated}
+          user={user}
+        />
+
+        {selectedPost && (
+          <CommentModal
+            isOpen={showCommentModal}
+            onClose={() => {
+              setShowCommentModal(false);
+              setSelectedPost(null);
+            }}
+            postId={selectedPost._id}
+            postContent={selectedPost.content}
+            postAuthor={selectedPost.username}
+            onCommentAdded={handleCommentAdded}
+          />
+        )}
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ import { TranslationProvider } from "@/contexts/TranslationContext";
 import Home from "@/content/Home";
 import Explore from "@/content/Explore";
 import Messages from "@/content/Messages";
-import FollowersList from "@/components/FollowersList";
+import Profile from "@/content/Profile";
 import More from "@/options/More";
 import Privacy from "@/options/Privacy";
 import { TranslatedText } from "@/hooks/useTranslation";
@@ -51,9 +51,7 @@ export default function RootLayout({
           </div>
         );
       case "Profile":
-        return (
-          <FollowersList onBack={() => handleMenuClick(<Home />, "Home")} />
-        );
+        return <Profile />;
       case "More":
         return <More />;
       case "Privacy":
@@ -116,10 +114,10 @@ export default function RootLayout({
         };
         setIsLoggedIn(true);
         setUser(userInfo);
-        
+
         // Check if user needs onboarding
         await checkUserPreferences();
-        
+
         // Dispatch user change event
         window.dispatchEvent(
           new CustomEvent("userChanged", { detail: userInfo })
@@ -390,7 +388,12 @@ export default function RootLayout({
   }
 
   // Show preferences/onboarding page for new users
-  if (isLoggedIn && isAuthChecked && !isCheckingPreferences && needsOnboarding) {
+  if (
+    isLoggedIn &&
+    isAuthChecked &&
+    !isCheckingPreferences &&
+    needsOnboarding
+  ) {
     return (
       <html lang="en">
         <head>
@@ -404,7 +407,10 @@ export default function RootLayout({
         <body>
           <ThemeProvider>
             <TranslationProvider>
-              <Preferences onComplete={handleOnboardingComplete} isOnboarding={true} />
+              <Preferences
+                onComplete={handleOnboardingComplete}
+                isOnboarding={true}
+              />
             </TranslationProvider>
           </ThemeProvider>
         </body>
