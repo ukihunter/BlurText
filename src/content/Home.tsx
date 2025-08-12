@@ -5,6 +5,7 @@ import Image from "next/image";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 import WhisperModal from "@/components/WhisperModal";
+import CommentModal from "@/components/CommentModal";
 import Icon from "@/components/Icon";
 
 interface Post {
@@ -28,6 +29,8 @@ const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showWhisperModal, setShowWhisperModal] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [user, setUser] = useState<{ username: string; id: string } | null>(
     null
   );
@@ -152,15 +155,17 @@ const Home = () => {
       if (response.ok) {
         const data = await response.json();
         // Update the post in local state
-        setPosts(posts.map(post => 
-          post._id === postId 
-            ? { 
-                ...post, 
-                likes: data.likes, 
-                isLikedByUser: data.isLiked 
-              }
-            : post
-        ));
+        setPosts(
+          posts.map((post) =>
+            post._id === postId
+              ? {
+                  ...post,
+                  likes: data.likes,
+                  isLikedByUser: data.isLiked,
+                }
+              : post
+          )
+        );
       }
     } catch (error) {
       console.error("Error liking post:", error);
@@ -181,14 +186,16 @@ const Home = () => {
       if (response.ok) {
         const data = await response.json();
         // Update the post in local state
-        setPosts(posts.map(post => 
-          post._id === postId 
-            ? { 
-                ...post, 
-                isBookmarkedByUser: data.isBookmarked 
-              }
-            : post
-        ));
+        setPosts(
+          posts.map((post) =>
+            post._id === postId
+              ? {
+                  ...post,
+                  isBookmarkedByUser: data.isBookmarked,
+                }
+              : post
+          )
+        );
       }
     } catch (error) {
       console.error("Error bookmarking post:", error);
@@ -209,18 +216,22 @@ const Home = () => {
       if (response.ok) {
         const data = await response.json();
         // Update the post in local state
-        setPosts(posts.map(post => 
-          post._id === postId 
-            ? { 
-                ...post, 
-                shares: data.shares 
-              }
-            : post
-        ));
-        
+        setPosts(
+          posts.map((post) =>
+            post._id === postId
+              ? {
+                  ...post,
+                  shares: data.shares,
+                }
+              : post
+          )
+        );
+
         // Show success message or copy link to clipboard
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`);
+          navigator.clipboard.writeText(
+            `${window.location.origin}/post/${postId}`
+          );
           alert("Link copied to clipboard!");
         }
       }
@@ -230,39 +241,16 @@ const Home = () => {
   };
 
   const handleComment = (postId: string) => {
-    // For now, just show an alert. In a full implementation, 
-    // you'd open a comment modal or navigate to post detail
-    const content = prompt("Add a comment:");
-    if (content?.trim()) {
-      addComment(postId, content);
+    const post = posts.find((p) => p._id === postId);
+    if (post) {
+      setSelectedPost(post);
+      setShowCommentModal(true);
     }
   };
 
-  const addComment = async (postId: string, content: string) => {
-    try {
-      const response = await fetch("/api/posts/comments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ postId, content }),
-      });
-
-      if (response.ok) {
-        // Update comment count in local state
-        setPosts(posts.map(post => 
-          post._id === postId 
-            ? { 
-                ...post, 
-                comments: post.comments + 1 
-              }
-            : post
-        ));
-      }
-    } catch (error) {
-      console.error("Error adding comment:", error);
-    }
+  const handleCommentAdded = () => {
+    // Refresh posts to get updated comment count
+    fetchPosts();
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -460,7 +448,7 @@ const Home = () => {
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <div className="flex space-x-8">
-                  <button 
+                  <button
                     onClick={() => handleComment(post._id)}
                     className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group"
                   >
@@ -469,26 +457,28 @@ const Home = () => {
                     </div>
                     <span className="text-sm font-medium">{post.comments}</span>
                   </button>
-                  
-                  <button 
+
+                  <button
                     onClick={() => handleLike(post._id)}
                     className={`flex items-center space-x-2 transition-colors group ${
-                      post.isLikedByUser 
-                        ? "text-red-500 dark:text-red-400" 
+                      post.isLikedByUser
+                        ? "text-red-500 dark:text-red-400"
                         : "text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400"
                     }`}
                   >
-                    <div className={`p-2 rounded-full transition-colors ${
-                      post.isLikedByUser
-                        ? "bg-red-50 dark:bg-red-900/20"
-                        : "group-hover:bg-red-50 dark:group-hover:bg-red-900/20"
-                    }`}>
+                    <div
+                      className={`p-2 rounded-full transition-colors ${
+                        post.isLikedByUser
+                          ? "bg-red-50 dark:bg-red-900/20"
+                          : "group-hover:bg-red-50 dark:group-hover:bg-red-900/20"
+                      }`}
+                    >
                       <Icon name="like.svg" width={18} height={18} />
                     </div>
                     <span className="text-sm font-medium">{post.likes}</span>
                   </button>
-                  
-                  <button 
+
+                  <button
                     onClick={() => handleShare(post._id)}
                     className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
                   >
@@ -498,8 +488,8 @@ const Home = () => {
                     <span className="text-sm font-medium">{post.shares}</span>
                   </button>
                 </div>
-                
-                <button 
+
+                <button
                   onClick={() => handleBookmark(post._id)}
                   className={`p-2 rounded-full transition-all duration-200 ${
                     post.isBookmarkedByUser
@@ -522,6 +512,21 @@ const Home = () => {
         onPostCreated={handlePostCreated}
         user={user}
       />
+
+      {/* Comment Modal */}
+      {selectedPost && (
+        <CommentModal
+          isOpen={showCommentModal}
+          onClose={() => {
+            setShowCommentModal(false);
+            setSelectedPost(null);
+          }}
+          postId={selectedPost._id}
+          postContent={selectedPost.content}
+          postAuthor={selectedPost.username}
+          onCommentAdded={handleCommentAdded}
+        />
+      )}
     </div>
   );
 };

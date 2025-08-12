@@ -97,10 +97,12 @@ export async function GET(request: NextRequest) {
 
     // Get all bookmarks for the user
     const bookmarks = await Bookmark.find({ userId }).sort({ createdAt: -1 });
-    
+
     // Get the actual posts
-    const postIds = bookmarks.map(bookmark => bookmark.postId);
-    const posts = await Post.find({ _id: { $in: postIds } }).sort({ createdAt: -1 });
+    const postIds = bookmarks.map((bookmark) => bookmark.postId);
+    const posts = await Post.find({ _id: { $in: postIds } }).sort({
+      createdAt: -1,
+    });
 
     return NextResponse.json({ posts });
   } catch (error) {

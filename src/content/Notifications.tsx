@@ -60,11 +60,13 @@ const Notifications = () => {
 
       if (response.ok) {
         // Update local state
-        setNotifications(notifications.map(notif => 
-          notificationIds.includes(notif._id) 
-            ? { ...notif, isRead: true }
-            : notif
-        ));
+        setNotifications(
+          notifications.map((notif) =>
+            notificationIds.includes(notif._id)
+              ? { ...notif, isRead: true }
+              : notif
+          )
+        );
         setUnreadCount(Math.max(0, unreadCount - notificationIds.length));
       }
     } catch (error) {
@@ -74,9 +76,9 @@ const Notifications = () => {
 
   const markAllAsRead = () => {
     const unreadIds = notifications
-      .filter(notif => !notif.isRead)
-      .map(notif => notif._id);
-    
+      .filter((notif) => !notif.isRead)
+      .map((notif) => notif._id);
+
     if (unreadIds.length > 0) {
       markAsRead(unreadIds);
     }
@@ -96,15 +98,50 @@ const Notifications = () => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "like":
-        return <Icon name="like.svg" width={20} height={20} className="text-red-500" />;
+        return (
+          <Icon
+            name="like.svg"
+            width={20}
+            height={20}
+            className="text-red-500"
+          />
+        );
       case "comment":
-        return <Icon name="comment.svg" width={20} height={20} className="text-blue-500" />;
+        return (
+          <Icon
+            name="comment.svg"
+            width={20}
+            height={20}
+            className="text-blue-500"
+          />
+        );
       case "share":
-        return <Icon name="share.svg" width={20} height={20} className="text-green-500" />;
+        return (
+          <Icon
+            name="share.svg"
+            width={20}
+            height={20}
+            className="text-green-500"
+          />
+        );
       case "follow":
-        return <Icon name="profile.svg" width={20} height={20} className="text-purple-500" />;
+        return (
+          <Icon
+            name="profile.svg"
+            width={20}
+            height={20}
+            className="text-purple-500"
+          />
+        );
       default:
-        return <Icon name="notification.svg" width={20} height={20} className="text-gray-500" />;
+        return (
+          <Icon
+            name="notification.svg"
+            width={20}
+            height={20}
+            className="text-gray-500"
+          />
+        );
     }
   };
 
@@ -154,12 +191,19 @@ const Notifications = () => {
       <div className="max-w-4xl mx-auto space-y-3 p-3">
         {notifications.length === 0 && !isLoading && (
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 p-8 text-center">
-            <Icon name="notification.svg" width={48} height={48} className="mx-auto mb-4 text-gray-400" />
+            <Icon
+              name="notification.svg"
+              width={48}
+              height={48}
+              className="mx-auto mb-4 text-gray-400"
+            />
             <p className="text-slate-600 dark:text-slate-300 text-lg">
               <TranslatedText>No notifications yet</TranslatedText>
             </p>
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
-              <TranslatedText>When people interact with your posts, you&apos;ll see it here</TranslatedText>
+              <TranslatedText>
+                When people interact with your posts, you&apos;ll see it here
+              </TranslatedText>
             </p>
           </div>
         )}
@@ -168,9 +212,13 @@ const Notifications = () => {
           <div
             key={notification._id}
             className={`bg-white/80 dark:bg-[#262335] rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30 p-4 transition-all hover:shadow-lg ${
-              !notification.isRead ? "ring-2 ring-blue-500/20 bg-blue-50/50 dark:bg-blue-900/10" : ""
+              !notification.isRead
+                ? "ring-2 ring-blue-500/20 bg-blue-50/50 dark:bg-blue-900/10"
+                : ""
             }`}
-            onClick={() => !notification.isRead && markAsRead([notification._id])}
+            onClick={() =>
+              !notification.isRead && markAsRead([notification._id])
+            }
           >
             <div className="flex items-start space-x-4">
               {/* Avatar */}
@@ -197,7 +245,7 @@ const Notifications = () => {
                       {formatTimeAgo(notification.createdAt)}
                     </p>
                   </div>
-                  
+
                   {/* Action Icon */}
                   <div className="flex items-center space-x-2 ml-4">
                     {getNotificationIcon(notification.type)}

@@ -38,6 +38,7 @@ const CommentSchema = new mongoose.Schema(
 // Index for better query performance
 CommentSchema.index({ postId: 1, createdAt: -1 });
 
-const Comment = mongoose.models.Comment || mongoose.model("Comment", CommentSchema);
+const Comment =
+  mongoose.models.Comment || mongoose.model("Comment", CommentSchema);
 
 export default Comment;

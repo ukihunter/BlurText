@@ -28,6 +28,7 @@ const BookmarkSchema = new mongoose.Schema(
 // Compound index to ensure one bookmark per user per post
 BookmarkSchema.index({ userId: 1, postId: 1 }, { unique: true });
 
-const Bookmark = mongoose.models.Bookmark || mongoose.model("Bookmark", BookmarkSchema);
+const Bookmark =
+  mongoose.models.Bookmark || mongoose.model("Bookmark", BookmarkSchema);
 
 export default Bookmark;

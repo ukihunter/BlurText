@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
             },
             // Check if user liked this post
             isLikedByUser: {
-              $in: [userId, "$likedBy"]
-            }
+              $in: [userId, "$likedBy"],
+            },
           },
         },
         {
@@ -89,12 +89,12 @@ export async function GET(request: NextRequest) {
         {
           $addFields: {
             isLikedByUser: {
-              $in: [userId, "$likedBy"]
-            }
-          }
+              $in: [userId, "$likedBy"],
+            },
+          },
         },
         { $sort: { createdAt: -1 } },
-        { $limit: 50 }
+        { $limit: 50 },
       ]);
     }
 
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     // Add bookmark status to posts
     const postsWithInteractionStatus = posts.map((post) => ({
       ...post,
-      isBookmarkedByUser: bookmarkedPostIds.includes(post._id.toString())
+      isBookmarkedByUser: bookmarkedPostIds.includes(post._id.toString()),
     }));
 
     return NextResponse.json({ posts: postsWithInteractionStatus });
