@@ -4,6 +4,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TranslatedText } from "@/hooks/useTranslation";
+import { showErrorToast, showWarningToast, showSuccessToast } from "@/utils/toast";
 
 interface LoginProps {
   onLogin: (userData?: { username: string; id: string }) => void;
@@ -123,7 +124,7 @@ const Login = ({ onLogin }: LoginProps) => {
   // Handle login API call
   const handleLogin = async () => {
     if (!loginUsername || !loginPassword) {
-      alert("Please enter both username and password");
+      showWarningToast("Please enter both username and password");
       return;
     }
 
@@ -147,11 +148,11 @@ const Login = ({ onLogin }: LoginProps) => {
           id: data.user.id,
         });
       } else {
-        alert(data.error || "Login failed");
+        showErrorToast(data.error || "Login failed");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Login failed. Please try again.");
+      showErrorToast("Login failed. Please try again.");
     }
   };
 
@@ -172,16 +173,17 @@ const Login = ({ onLogin }: LoginProps) => {
       const data = await response.json();
 
       if (response.ok) {
-        alert(
-          "Account created successfully! Please login with your credentials."
+        showSuccessToast(
+          "Account created successfully! Please login with your credentials.",
+          4000
         );
         switchToLogin();
       } else {
-        alert(data.error || "Registration failed");
+        showErrorToast(data.error || "Registration failed");
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert("Registration failed. Please try again.");
+      showErrorToast("Registration failed. Please try again.");
     }
   };
 
