@@ -5,13 +5,21 @@ import Image from "next/image";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 import Icon from "@/components/Icon";
+import PostImages from "@/components/PostImages";
 
 interface Post {
   _id: string;
   userId: string;
   username: string;
   content: string;
-  images?: string[];
+  images?: {
+    data: string;
+    iv: string;
+    key: string;
+    filename: string;
+    mimetype: string;
+    size: number;
+  }[];
   tags: string[];
   likes: number;
   likedBy: string[];
@@ -179,31 +187,11 @@ const Bookmarks = () => {
               )}
 
               {/* Images */}
-              {post.images && post.images.length > 0 && (
-                <div
-                  className={`grid gap-3 mb-4 ${
-                    post.images.length === 1
-                      ? "grid-cols-1"
-                      : post.images.length === 2
-                      ? "grid-cols-2"
-                      : "grid-cols-2"
-                  }`}
-                >
-                  {post.images.map((image, index) => (
-                    <div
-                      key={index}
-                      className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 flex items-center justify-center relative"
-                    >
-                      <Image
-                        src={image}
-                        alt={`Post image ${index + 1}`}
-                        fill
-                        className="object-cover rounded-2xl"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              <PostImages
+                postId={post._id}
+                images={post.images || []}
+                className="mb-4"
+              />
 
               <div className="flex items-center justify-between">
                 <div className="flex space-x-6">

@@ -8,6 +8,7 @@ import FollowersList from "@/components/FollowersList";
 import WhisperModal from "@/components/WhisperModal";
 import CommentModal from "@/components/CommentModal";
 import Icon from "@/components/Icon";
+import PostImages from "@/components/PostImages";
 import { showSuccessToast } from "@/utils/toast";
 
 interface User {
@@ -28,7 +29,14 @@ interface Post {
   userId: string;
   username: string;
   content: string;
-  images?: string[];
+  images?: {
+    data: string;
+    iv: string;
+    key: string;
+    filename: string;
+    mimetype: string;
+    size: number;
+  }[];
   tags: string[];
   likes: number;
   likedBy: string[];
@@ -686,31 +694,11 @@ const Profile: React.FC = () => {
                       )}
 
                       {/* Images */}
-                      {post.images && post.images.length > 0 && (
-                        <div
-                          className={`grid gap-3 mb-4 ${
-                            post.images.length === 1
-                              ? "grid-cols-1"
-                              : post.images.length === 2
-                              ? "grid-cols-2"
-                              : "grid-cols-2"
-                          }`}
-                        >
-                          {post.images.map((image, index) => (
-                            <div
-                              key={index}
-                              className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 flex items-center justify-center relative"
-                            >
-                              <Image
-                                src={image}
-                                alt={`Post image ${index + 1}`}
-                                fill
-                                className="object-cover rounded-2xl"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <PostImages
+                        postId={post._id}
+                        images={post.images || []}
+                        className="mb-4"
+                      />
 
                       {/* Interaction Buttons */}
                       <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -850,31 +838,11 @@ const Profile: React.FC = () => {
                     )}
 
                     {/* Images */}
-                    {post.images && post.images.length > 0 && (
-                      <div
-                        className={`grid gap-3 mb-4 ${
-                          post.images.length === 1
-                            ? "grid-cols-1"
-                            : post.images.length === 2
-                            ? "grid-cols-2"
-                            : "grid-cols-2"
-                        }`}
-                      >
-                        {post.images.map((image, index) => (
-                          <div
-                            key={index}
-                            className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 flex items-center justify-center relative"
-                          >
-                            <Image
-                              src={image}
-                              alt={`Post image ${index + 1}`}
-                              fill
-                              className="object-cover rounded-2xl"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <PostImages
+                      postId={post._id}
+                      images={post.images || []}
+                      className="mb-4"
+                    />
 
                     {/* Interaction Buttons */}
                     <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
