@@ -258,7 +258,7 @@ const Profile: React.FC = () => {
             );
             showSuccessToast("Link copied to clipboard!", 2500);
           } catch (error) {
-            console.log('Clipboard access denied');
+            console.log("Clipboard access denied");
           }
         }
       }
