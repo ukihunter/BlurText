@@ -4,7 +4,11 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TranslatedText } from "@/hooks/useTranslation";
-import { showErrorToast, showWarningToast, showSuccessToast } from "@/utils/toast";
+import {
+  showErrorToast,
+  showWarningToast,
+  showSuccessToast,
+} from "@/utils/toast";
 
 interface LoginProps {
   onLogin: (userData?: { username: string; id: string }) => void;
@@ -97,13 +101,29 @@ const Login = ({ onLogin }: LoginProps) => {
 
   // Function to generate random password
   const generatePassword = () => {
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const numbers = "0123456789";
+    const symbols = "!@#$%^&*";
+
+    // Ensure at least one character from each category
     let password = "";
-    for (let i = 0; i < 12; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    password += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
+    password += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
+    password += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    password += symbols.charAt(Math.floor(Math.random() * symbols.length));
+
+    // Fill remaining length with random characters from all categories
+    const allChars = uppercase + lowercase + numbers + symbols;
+    for (let i = 4; i < 12; i++) {
+      password += allChars.charAt(Math.floor(Math.random() * allChars.length));
     }
-    return password;
+
+    // Shuffle the password to randomize character positions
+    return password
+      .split("")
+      .sort(() => Math.random() - 0.5)
+      .join("");
   };
 
   // Function to download credentials as txt file
@@ -224,8 +244,10 @@ const Login = ({ onLogin }: LoginProps) => {
             <TranslatedText>Welcome to BlurText</TranslatedText>
           </h1>
           <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed animate-fade-in-delay">
-            <TranslatedText>Your anonymous social platform where privacy meets connection. Share
-            thoughts freely without revealing your identity.</TranslatedText>
+            <TranslatedText>
+              Your anonymous social platform where privacy meets connection.
+              Share thoughts freely without revealing your identity.
+            </TranslatedText>
           </p>
           <div className="mt-6 flex items-center space-x-2 animate-fade-in-delay-2">
             {/* Animated ping dot */}
@@ -265,7 +287,9 @@ const Login = ({ onLogin }: LoginProps) => {
               {/* Credentials Section */}
               <div className="mb-6">
                 <p className="text-center text-green-600 dark:text-green-400 font-medium">
-                  <TranslatedText>Enter Your Credentials To Login</TranslatedText>
+                  <TranslatedText>
+                    Enter Your Credentials To Login
+                  </TranslatedText>
                 </p>
               </div>
 
@@ -353,7 +377,9 @@ const Login = ({ onLogin }: LoginProps) => {
                 onClick={switchToRegister}
                 className="text-center text-gray-600 dark:text-gray-400 hover:text-purple-500 dark:hover:text-purple-400 cursor-pointer transition-colors duration-300"
               >
-                <TranslatedText>Not a Member, Create New Account</TranslatedText>
+                <TranslatedText>
+                  Not a Member, Create New Account
+                </TranslatedText>
               </p>
             </>
           ) : (
@@ -493,7 +519,9 @@ const Login = ({ onLogin }: LoginProps) => {
                 onClick={switchToLogin}
                 className="text-center text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer transition-colors duration-300"
               >
-                <TranslatedText>Already have an account? Login here</TranslatedText>
+                <TranslatedText>
+                  Already have an account? Login here
+                </TranslatedText>
               </p>
             </>
           )}
