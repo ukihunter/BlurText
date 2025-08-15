@@ -5,7 +5,17 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
+import ImageUpload from "./ImageUpload";
 import Icon from "./Icon";
+
+interface EncryptedImageData {
+  data: string;
+  iv: string;
+  key: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+}
 
 interface WhisperModalProps {
   isOpen: boolean;
@@ -25,11 +35,11 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
 }) => {
   const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<EncryptedImageData[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Portal mount state
@@ -103,36 +113,9 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
     };
   }, [isOpen]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length + selectedImages.length > 4) {
-      setError("You can upload maximum 4 images");
-      return;
-    }
-
-    const validFiles = files.filter((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Each image must be less than 5MB");
-        return false;
-      }
-      return file.type.startsWith("image/");
-    });
-
-    setSelectedImages((prev) => [...prev, ...validFiles]);
-
-    // Create preview URLs
-    validFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreviewUrls((prev) => [...prev, e.target?.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index));
+  const handleImageUpload = (images: EncryptedImageData[]) => {
+    setUploadedImages(images);
+    setError(""); // Clear any previous errors
   };
 
   const toggleTag = (tag: string) => {
@@ -162,10 +145,6 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
     setIsLoading(true);
 
     try {
-      // For now, we'll just send the post without image upload
-      // In a real app, you'd upload images to a cloud service first
-      const imageUrls: string[] = [];
-
       const response = await fetch("/api/posts", {
         method: "POST",
         headers: {
@@ -174,7 +153,7 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
         credentials: "include",
         body: JSON.stringify({
           content: content.trim(),
-          images: imageUrls,
+          images: uploadedImages, // Use encrypted images
           tags: selectedTags,
         }),
       });
@@ -187,8 +166,7 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
       // Reset form
       setContent("");
       setSelectedTags([]);
-      setSelectedImages([]);
-      setImagePreviewUrls([]);
+      setUploadedImages([]);
 
       onPostCreated();
       onClose();
@@ -206,8 +184,7 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
     if (!isLoading) {
       setContent("");
       setSelectedTags([]);
-      setSelectedImages([]);
-      setImagePreviewUrls([]);
+      setUploadedImages([]);
       setError("");
       onClose();
     }
@@ -286,26 +263,14 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
             </div>
           </div>
 
-          {/* Image Previews */}
-          {imagePreviewUrls.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              {imagePreviewUrls.map((url, index) => (
-                <div key={index} className="relative group">
-                  <Image
-                    src={url}
-                    alt={`Preview ${index + 1}`}
-                    width={200}
-                    height={128}
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Icon name="cross.svg" width={16} height={16} />
-                  </button>
-                </div>
-              ))}
+          {/* Image Upload Section */}
+          {content.trim() && (
+            <div>
+              <ImageUpload
+                onImagesUploaded={handleImageUpload}
+                maxImages={4}
+                disabled={isLoading}
+              />
             </div>
           )}
 
@@ -340,25 +305,11 @@ const WhisperModal: React.FC<WhisperModalProps> = ({
           {/* Action Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading || selectedImages.length >= 4}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Icon name="image.svg" width={20} height={20} />
-                <span className="text-sm">
-                  <TranslatedText>Photo</TranslatedText>
-                </span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                className="hidden"
-                disabled={isLoading}
-              />
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {uploadedImages.length > 0 && (
+                  <span>{uploadedImages.length} image(s) ready</span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center space-x-3">

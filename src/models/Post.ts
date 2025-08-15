@@ -5,7 +5,14 @@ export interface IPost {
   userId: string;
   username: string;
   content: string;
-  images?: string[];
+  images?: {
+    data: string; // encrypted base64
+    iv: string; // initialization vector
+    key: string; // encryption key
+    filename: string;
+    mimetype: string;
+    size: number;
+  }[];
   tags: string[];
   likes: number;
   likedBy: string[];
@@ -14,6 +21,33 @@ export interface IPost {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const ImageSchema = new mongoose.Schema({
+  data: {
+    type: String,
+    required: true,
+  }, // encrypted base64 image data
+  iv: {
+    type: String,
+    required: true,
+  }, // initialization vector for decryption
+  key: {
+    type: String,
+    required: true,
+  }, // encryption key
+  filename: {
+    type: String,
+    required: true,
+  },
+  mimetype: {
+    type: String,
+    required: true,
+  },
+  size: {
+    type: Number,
+    required: true,
+  },
+});
 
 const PostSchema = new mongoose.Schema(
   {
@@ -31,15 +65,10 @@ const PostSchema = new mongoose.Schema(
       required: true,
       maxLength: 1000,
     },
-    images: [
-      {
-        type: String,
-      },
-    ],
+    images: [ImageSchema], // Updated to store encrypted image objects
     tags: [
       {
         type: String,
-        required: true,
       },
     ],
     likes: {

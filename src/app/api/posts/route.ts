@@ -149,6 +149,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { content, images, tags } = body;
 
+    console.log("Post creation request:", {
+      content,
+      images,
+      tags,
+      userId,
+      username: user.username,
+    });
+
     // Validation
     if (!content || content.trim().length === 0) {
       return NextResponse.json(
@@ -172,7 +180,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new post
-    const newPost = new Post({
+    const postData = {
       userId,
       username: user.username,
       content: content.trim(),
@@ -182,7 +190,11 @@ export async function POST(request: NextRequest) {
       likedBy: [],
       comments: 0,
       shares: 0,
-    });
+    };
+
+    console.log("Creating post with data:", postData);
+
+    const newPost = new Post(postData);
 
     const savedPost = await newPost.save();
 
@@ -192,6 +204,16 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error creating post:", error);
+
+    // If it's a mongoose validation error, provide more specific details
+    if (error instanceof Error && error.name === "ValidationError") {
+      console.error("Validation error details:", error.message);
+      return NextResponse.json(
+        { error: `Post validation failed: ${error.message}` },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -6,15 +6,30 @@ import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 import WhisperModal from "@/components/WhisperModal";
 import CommentModal from "@/components/CommentModal";
+import ImageUpload from "@/components/ImageUpload";
+import PostImages from "@/components/PostImages";
 import Icon from "@/components/Icon";
 import { showSuccessToast } from "@/utils/toast";
+
+interface EncryptedImageData {
+  data: string;
+  iv: string;
+  key: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+}
 
 interface Post {
   _id: string;
   userId: string;
   username: string;
   content: string;
-  images?: string[];
+  images?: {
+    filename: string;
+    mimetype: string;
+    size: number;
+  }[];
   tags: string[];
   likes: number;
   likedBy: string[];
@@ -37,6 +52,10 @@ const Home = () => {
   );
   const [postContent, setPostContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<EncryptedImageData[]>(
+    []
+  );
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const availableTags = [
@@ -111,9 +130,14 @@ const Home = () => {
     );
   };
 
+  const handleImagesUploaded = (images: EncryptedImageData[]) => {
+    setUploadedImages(images);
+  };
+
   const handleQuickPost = async () => {
     if (!postContent.trim() || selectedTags.length === 0) return;
 
+    setIsCreatingPost(true);
     try {
       const response = await fetch("/api/posts", {
         method: "POST",
@@ -123,7 +147,7 @@ const Home = () => {
         credentials: "include",
         body: JSON.stringify({
           content: postContent.trim(),
-          images: [],
+          images: uploadedImages,
           tags: selectedTags,
         }),
       });
@@ -131,10 +155,14 @@ const Home = () => {
       if (response.ok) {
         setPostContent("");
         setSelectedTags([]);
+        setUploadedImages([]);
         fetchPosts(); // Refresh posts
+        showSuccessToast("Post created successfully!");
       }
     } catch (error) {
       console.error("Error creating post:", error);
+    } finally {
+      setIsCreatingPost(false);
     }
   };
 
@@ -235,13 +263,13 @@ const Home = () => {
               `${window.location.origin}/post/${postId}`
             );
             showSuccessToast("Link copied to clipboard!", 2500);
-          } catch (error) {
-            console.log('Clipboard access denied');
+          } catch (_error) {
+            console.log("Clipboard access denied");
           }
         }
       }
-    } catch (error) {
-      console.error("Error sharing post:", error);
+    } catch (_error) {
+      console.log("Error sharing post");
     }
   };
 
@@ -331,24 +359,42 @@ const Home = () => {
                 </div>
               )}
 
+              {/* Image Upload Section */}
+              {postContent.trim() && (
+                <div className="mb-4">
+                  <ImageUpload
+                    onImagesUploaded={handleImagesUploaded}
+                    maxImages={4}
+                    disabled={isCreatingPost}
+                  />
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowWhisperModal(true)}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-purple-100 dark:bg-purple-200/30"
-                  >
-                    <Icon name="image.svg" width={20} height={20} />
-                    <span className="text-sm font-medium">
-                      <TranslatedText>Photo</TranslatedText>
-                    </span>
-                  </button>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {uploadedImages.length > 0 && (
+                      <span>{uploadedImages.length} image(s) ready</span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={handleQuickPost}
-                  disabled={!postContent.trim() || selectedTags.length === 0}
+                  disabled={
+                    !postContent.trim() ||
+                    selectedTags.length === 0 ||
+                    isCreatingPost
+                  }
                   className="text-white border-white border px-8 py-2 rounded-full font-semibold hover:bg-blue-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <TranslatedText>Share</TranslatedText>
+                  {isCreatingPost ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <TranslatedText>Posting...</TranslatedText>
+                    </div>
+                  ) : (
+                    <TranslatedText>Share</TranslatedText>
+                  )}
                 </button>
               </div>
             </div>
@@ -425,31 +471,11 @@ const Home = () => {
               )}
 
               {/* Images */}
-              {post.images && post.images.length > 0 && (
-                <div
-                  className={`grid gap-3 mb-4 ${
-                    post.images.length === 1
-                      ? "grid-cols-1"
-                      : post.images.length === 2
-                      ? "grid-cols-2"
-                      : "grid-cols-2"
-                  }`}
-                >
-                  {post.images.map((image, index) => (
-                    <div
-                      key={index}
-                      className="bg-gradient-to-br from-purple-100 via-pink-500 to-orange-500 rounded-2xl h-64 flex items-center justify-center relative"
-                    >
-                      <Image
-                        src={image}
-                        alt={`Post image ${index + 1}`}
-                        fill
-                        className="object-cover rounded-2xl"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              <PostImages
+                postId={post._id}
+                images={post.images || []}
+                className="mb-4"
+              />
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <div className="flex space-x-8">
