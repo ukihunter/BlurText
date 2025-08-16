@@ -47,7 +47,11 @@ interface Post {
   isBookmarkedByUser?: boolean;
 }
 
-const Profile: React.FC = () => {
+interface ProfileProps {
+  selectedUser?: any;
+}
+
+const Profile: React.FC<ProfileProps> = ({ selectedUser }) => {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<ProfileStats>({
     followersCount: 0,
@@ -73,9 +77,22 @@ const Profile: React.FC = () => {
     setMounted(true);
   }, []);
 
-  // Fetch current user data
+  // Fetch current user data or use selected user
   const fetchUserData = async () => {
     try {
+      // If selectedUser is provided, use that data instead of fetching current user
+      if (selectedUser) {
+        setUser({
+          id: selectedUser._id,
+          username: selectedUser.username,
+          displayName: selectedUser.username,
+          avatar: generateConsistentAvatar(selectedUser.username),
+          joinedAt: new Date().toISOString(), // We don't have joinedAt from search
+        });
+        return;
+      }
+
+      // Otherwise fetch current user data
       const response = await fetch("/api/auth/me");
       if (response.ok) {
         const data = await response.json();
@@ -97,7 +114,14 @@ const Profile: React.FC = () => {
   // Fetch profile stats (followers and following counts)
   const fetchProfileStats = async () => {
     try {
-      // Fetch followers count
+      // If viewing another user's profile, set default stats for now
+      if (selectedUser) {
+        setStats({ followersCount: 0, followingCount: 0 });
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch followers count for current user
       const followersResponse = await fetch("/api/users/followers");
       let followersCount = 0;
       if (followersResponse.ok) {
@@ -105,7 +129,7 @@ const Profile: React.FC = () => {
         followersCount = followersData.count || 0;
       }
 
-      // Fetch following count
+      // Fetch following count for current user
       const followingResponse = await fetch("/api/users/followed");
       let followingCount = 0;
       if (followingResponse.ok) {
@@ -124,7 +148,7 @@ const Profile: React.FC = () => {
   useEffect(() => {
     fetchUserData();
     fetchProfileStats();
-  }, []);
+  }, [selectedUser]);
 
   // Fetch user's own posts
   const fetchUserPosts = useCallback(async () => {

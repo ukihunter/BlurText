@@ -33,7 +33,7 @@ export default function RootLayout({
   const getPageContent = (pageName: string): React.ReactNode => {
     switch (pageName) {
       case "Home":
-        return <Home />;
+        return <Home selectedHashtag={selectedHashtag} />;
       case "Explore":
         return <Explore />;
       case "Messages":
@@ -51,7 +51,7 @@ export default function RootLayout({
           </div>
         );
       case "Profile":
-        return <Profile />;
+        return <Profile selectedUser={selectedProfileUser} />;
       case "More":
         return <More />;
       case "Privacy":
@@ -69,6 +69,8 @@ export default function RootLayout({
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [currentPage, setCurrentPage] = useState<string>("Home");
   const [selectedMessageUser, setSelectedMessageUser] = useState<any>(null);
+  const [selectedProfileUser, setSelectedProfileUser] = useState<any>(null);
+  const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [messageKey, setMessageKey] = useState(0);
   const [user, setUser] = useState<{
     username: string;
@@ -231,6 +233,30 @@ export default function RootLayout({
       setIsLoading(false);
     }, 300);
   };
+
+  // Function to navigate to user profile
+  const handleViewUserProfile = useCallback((user: any) => {
+    console.log("Viewing user profile:", user);
+    setSelectedProfileUser(user);
+    setIsLoading(true);
+    setTimeout(() => {
+      setCurrentPage("Profile");
+      setActiveContent(getPageContent("Profile"));
+      setIsLoading(false);
+    }, 300);
+  }, []);
+
+  // Function to filter by hashtag
+  const handleFilterByHashtag = useCallback((hashtag: string) => {
+    console.log("Filtering by hashtag:", hashtag);
+    setSelectedHashtag(hashtag);
+    setIsLoading(true);
+    setTimeout(() => {
+      setCurrentPage("Home");
+      setActiveContent(getPageContent("Home"));
+      setIsLoading(false);
+    }, 300);
+  }, []);
 
   // Function to navigate to Messages with a specific user selected
   const handleMessageUser = useCallback((user: any) => {
@@ -469,7 +495,11 @@ export default function RootLayout({
                   {activeContent}
                 </div>
                 <div className="hidden ml-4 md:ml-8 lg:block lg:w-80 xl:w-96 sticky top-0 h-screen overflow-y-auto scrollable-content">
-                  <RightBar onMenuClick={handleMenuClick} />
+                  <RightBar 
+                    onMenuClick={handleMenuClick}
+                    onUserSelect={handleViewUserProfile}
+                    onHashtagSelect={handleFilterByHashtag}
+                  />
                 </div>
               </div>
             </TranslationProvider>

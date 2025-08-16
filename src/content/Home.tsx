@@ -41,7 +41,12 @@ interface Post {
   isBookmarkedByUser?: boolean;
 }
 
-const Home = () => {
+interface HomeProps {
+  selectedHashtag?: string | null;
+}
+
+const Home: React.FC<HomeProps> = ({ selectedHashtag }) => {
+  console.log("Home component received selectedHashtag:", selectedHashtag);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showWhisperModal, setShowWhisperModal] = useState(false);
@@ -107,15 +112,22 @@ const Home = () => {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch("/api/posts", {
+      let url = "/api/posts";
+      if (selectedHashtag) {
+        url += `?hashtag=${encodeURIComponent(selectedHashtag)}`;
+        console.log("Fetching posts with hashtag filter:", selectedHashtag, "URL:", url);
+      }
+      
+      const response = await fetch(url, {
         credentials: "include",
       });
 
       if (response.ok) {
         const data = await response.json();
+        console.log("Fetched posts:", data.posts?.length, "posts");
         setPosts(data.posts || []);
       } else {
-        console.error("Failed to fetch posts");
+        console.error("Failed to fetch posts", response.status);
       }
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -123,6 +135,11 @@ const Home = () => {
       setIsLoading(false);
     }
   };
+
+  // Refetch posts when selectedHashtag changes
+  useEffect(() => {
+    fetchPosts();
+  }, [selectedHashtag]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -310,6 +327,28 @@ const Home = () => {
           </p>
         </div>
       </div>
+
+      {/* Hashtag Filter Indicator */}
+      {selectedHashtag && (
+        <div className="max-w-4xl mx-auto mb-4">
+          <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="text-blue-600 dark:text-blue-400 text-xl">#</div>
+                <span className="text-blue-800 dark:text-blue-200 font-medium">
+                  Filtering by #{selectedHashtag}
+                </span>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm font-medium"
+              >
+                <TranslatedText>Clear filter</TranslatedText>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Post Section */}
       <div className="max-w-4xl mx-auto mb-2 ">

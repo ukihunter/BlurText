@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
 import Privacy from "@/options/Privacy";
+import SearchModal from "./SearchModal";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
@@ -21,11 +22,16 @@ interface SuggestedUser {
 
 const RightBar = ({
   onMenuClick,
+  onUserSelect,
+  onHashtagSelect,
 }: {
   onMenuClick?: (content: React.ReactNode, pageName?: string) => void;
+  onUserSelect?: (user: any) => void;
+  onHashtagSelect?: (hashtag: string) => void;
 }) => {
   const { translate } = useTranslation();
   const [searchPlaceholder, setSearchPlaceholder] = useState("search");
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   // Fetch news articles from the API
   const [news, setNews] = useState<{ title: string; url: string }[]>([]);
@@ -60,6 +66,29 @@ const RightBar = ({
     if (onMenuClick) {
       onMenuClick(<Privacy />, "Privacy");
     }
+  };
+
+  // Handle search functionality
+  const handleSearchClick = () => {
+    setIsSearchModalOpen(true);
+  };
+
+  const handleSearchModalClose = () => {
+    setIsSearchModalOpen(false);
+  };
+
+  const handleUserSelect = (user: {
+    _id: string;
+    username: string;
+    email: string;
+  }) => {
+    console.log("Selected user:", user);
+    onUserSelect?.(user);
+  };
+
+  const handleHashtagSelect = (hashtag: string) => {
+    console.log("Selected hashtag:", hashtag);
+    onHashtagSelect?.(hashtag);
   };
 
   // Fetch suggested users
@@ -170,20 +199,20 @@ const RightBar = ({
   // Fetch news with comprehensive error handling
   const fetchNews = async () => {
     setLoading(true);
-    
+
     // Helper function for safe fetch with timeout
     const safeFetch = async (url: string, timeoutMs: number = 10000) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
+
       try {
         const response = await fetch(url, {
           headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'BlurText/1.0',
+            Accept: "application/json",
+            "User-Agent": "BlurText/1.0",
           },
           signal: controller.signal,
-          mode: 'cors',
+          mode: "cors",
         });
         clearTimeout(timeoutId);
         return response;
@@ -198,7 +227,7 @@ const RightBar = ({
       const response = await safeFetch(
         "https://newsapi.org/v2/top-headlines?country=us&apiKey=9d72a6cdbdf243bf904090d76ec5f3f2"
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.articles && Array.isArray(data.articles)) {
@@ -207,17 +236,25 @@ const RightBar = ({
           return; // Success, exit early
         }
       }
-      
+
       throw new Error(`News API failed with status: ${response.status}`);
-      
     } catch (error) {
       console.warn("News API failed, using fallback data:", error);
-      
+
       // Set fallback news to prevent empty state
       setNews([
-        { title: "Technology News - Stay Updated", url: "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB" },
-        { title: "Market Analysis & Trends", url: "https://news.google.com/topics/CAAqKggKIiRDQkFTRlFvSUwyMHZNREY2WVdaU0VRb01hMjF2Y21WaEVRSUJBaWdKTkE" },
-        { title: "Latest Tech Developments", url: "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB" }
+        {
+          title: "Technology News - Stay Updated",
+          url: "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB",
+        },
+        {
+          title: "Market Analysis & Trends",
+          url: "https://news.google.com/topics/CAAqKggKIiRDQkFTRlFvSUwyMHZNREY2WVdaU0VRb01hMjF2Y21WaEVRSUJBaWdKTkE",
+        },
+        {
+          title: "Latest Tech Developments",
+          url: "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB",
+        },
       ]);
     } finally {
       setLoading(false);
@@ -226,30 +263,30 @@ const RightBar = ({
 
   useEffect(() => {
     fetchNews();
-    
+
     // Refresh news every 30 minutes
     const interval = setInterval(fetchNews, 30 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
   // Fetch cryptocurrency data with comprehensive error handling
   const fetchCrypto = async () => {
     setCryptoLoading(true);
-    
+
     // Helper function for safe fetch with timeout
     const safeFetch = async (url: string, timeoutMs: number = 10000) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
+
       try {
         const response = await fetch(url, {
           headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'BlurText/1.0',
+            Accept: "application/json",
+            "User-Agent": "BlurText/1.0",
           },
           signal: controller.signal,
-          mode: 'cors',
+          mode: "cors",
         });
         clearTimeout(timeoutId);
         return response;
@@ -265,7 +302,7 @@ const RightBar = ({
       const response = await safeFetch(
         "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=5&page=1&sparkline=false"
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -274,40 +311,43 @@ const RightBar = ({
           return; // Success, exit early
         }
       }
-      
+
       throw new Error(`CoinGecko API failed with status: ${response.status}`);
-      
     } catch (error) {
       console.warn("CoinGecko API failed, trying alternative methods:", error);
-      
+
       try {
         // Try alternative API with timeout
         console.log("Attempting to fetch from alternative API...");
         const response = await safeFetch(
           "https://api.coinlore.net/api/tickers/?start=0&limit=5"
         );
-        
+
         if (response.ok) {
           const fallbackData = await response.json();
           if (fallbackData.data && Array.isArray(fallbackData.data)) {
-            const transformedData = fallbackData.data.slice(0, 5).map((coin: any) => ({
-              id: coin.id || coin.symbol || 'unknown',
-              name: coin.name || 'Unknown',
-              current_price: parseFloat(coin.price_usd) || 0,
-              price_change_percentage_24h: parseFloat(coin.percent_change_24h) || 0
-            }));
-            
-            console.log("Successfully fetched crypto data from alternative API");
+            const transformedData = fallbackData.data
+              .slice(0, 5)
+              .map((coin: any) => ({
+                id: coin.id || coin.symbol || "unknown",
+                name: coin.name || "Unknown",
+                current_price: parseFloat(coin.price_usd) || 0,
+                price_change_percentage_24h:
+                  parseFloat(coin.percent_change_24h) || 0,
+              }));
+
+            console.log(
+              "Successfully fetched crypto data from alternative API"
+            );
             setCrypto(transformedData);
             return; // Success, exit early
           }
         }
-        
+
         throw new Error("Alternative API also failed");
-        
       } catch (alternativeError) {
         console.warn("Alternative API also failed:", alternativeError);
-        
+
         // Final fallback to static data
         console.log("Using static fallback crypto data");
         setCrypto([
@@ -315,20 +355,20 @@ const RightBar = ({
             id: "bitcoin",
             name: "Bitcoin",
             current_price: 45000,
-            price_change_percentage_24h: 2.5
+            price_change_percentage_24h: 2.5,
           },
           {
-            id: "ethereum", 
+            id: "ethereum",
             name: "Ethereum",
             current_price: 3000,
-            price_change_percentage_24h: 1.8
+            price_change_percentage_24h: 1.8,
           },
           {
             id: "cardano",
-            name: "Cardano", 
+            name: "Cardano",
             current_price: 0.45,
-            price_change_percentage_24h: -1.2
-          }
+            price_change_percentage_24h: -1.2,
+          },
         ]);
       }
     } finally {
@@ -338,10 +378,10 @@ const RightBar = ({
 
   useEffect(() => {
     fetchCrypto();
-    
+
     // Set up interval to refresh crypto data every 5 minutes
     const interval = setInterval(fetchCrypto, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -358,31 +398,11 @@ const RightBar = ({
         <input
           type="text"
           placeholder={searchPlaceholder}
-          className="bg-gray-100 dark:bg-[#262335] border border-gray-300 dark:border-[#3b3b3b] text-black dark:text-white rounded-full py-2 px-10 w-full mt-4 pl-3 focus:border-blue-500 focus:outline-none transition-colors duration-300"
-          onClick={async () => {
-            const searchMessage = await translate("Search using keyword");
-            const searchBox = document.createElement("div");
-            searchBox.textContent = searchMessage;
-            searchBox.style.textAlign = "center";
-            searchBox.style.width = "250px";
-            searchBox.style.fontSize = "15px";
-            searchBox.style.fontWeight = "thinner";
-            searchBox.style.position = "absolute";
-            searchBox.style.top = "65px";
-            searchBox.style.right = "180px";
-            searchBox.style.backgroundColor = "#262335";
-            searchBox.style.color = "grey";
-            searchBox.style.padding = "50px";
-            searchBox.style.borderRadius = "5px";
-            searchBox.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.2)";
-            document.body.appendChild(searchBox);
-
-            setTimeout(() => {
-              document.body.removeChild(searchBox);
-            }, 1800);
-          }}
+          readOnly
+          className="bg-gray-100 dark:bg-[#262335] border border-gray-300 dark:border-[#3b3b3b] text-black dark:text-white rounded-full py-2 px-10 w-full mt-4 pl-3 focus:border-blue-500 focus:outline-none transition-colors duration-300 cursor-pointer"
+          onClick={handleSearchClick}
         />
-        <div className="absolute top-9 right-3 transform -translate-y-1/2 w-5 h-5">
+        <div className="absolute top-9 right-3 transform -translate-y-1/2 w-5 h-5 pointer-events-none">
           <Icon name="search.svg" width={20} height={20} />
         </div>
       </div>
@@ -439,9 +459,14 @@ const RightBar = ({
         ) : Array.isArray(crypto) && crypto.length > 0 ? (
           <ul className="space-y-2">
             {crypto.slice(0, 3).map((coin, index) => (
-              <li key={coin.id || index} className="flex justify-between items-center">
+              <li
+                key={coin.id || index}
+                className="flex justify-between items-center"
+              >
                 <div>
-                  <span className="font-medium text-sm">{coin.name || 'Unknown'}</span>
+                  <span className="font-medium text-sm">
+                    {coin.name || "Unknown"}
+                  </span>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     ${(coin.current_price || 0).toFixed(2)}
                   </div>
@@ -646,6 +671,14 @@ const RightBar = ({
           <TranslatedText>© 2025 UKI.</TranslatedText>
         </div>
       </div>
+
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={handleSearchModalClose}
+        onUserSelect={handleUserSelect}
+        onHashtagSelect={handleHashtagSelect}
+      />
     </div>
   );
 };

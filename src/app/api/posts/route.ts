@@ -27,6 +27,37 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = decoded.userId;
+    
+    // Check for hashtag filter
+    const { searchParams } = new URL(request.url);
+    const hashtagFilter = searchParams.get("hashtag");
+
+    // If hashtag filter is provided, return posts with that hashtag
+    if (hashtagFilter) {
+      const filteredPosts = await Post.find({
+        tags: { $in: [hashtagFilter] }
+      })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
+
+      // Add user interaction flags
+      const postsWithFlags = await Promise.all(
+        filteredPosts.map(async (post) => {
+          const isLikedByUser = post.likedBy?.includes(userId) || false;
+          const bookmark = await Bookmark.findOne({ userId, postId: post._id });
+          const isBookmarkedByUser = !!bookmark;
+
+          return {
+            ...post,
+            isLikedByUser,
+            isBookmarkedByUser,
+          };
+        })
+      );
+
+      return NextResponse.json({ posts: postsWithFlags });
+    }
 
     // Get user preferences for recommendations
     const userPreferences = await UserPreferences.findOne({ userId });
