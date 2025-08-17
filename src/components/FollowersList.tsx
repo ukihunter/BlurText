@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import { TranslatedText } from "@/hooks/useTranslation";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
 
+interface UserData {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatar?: string;
+  isOnline?: boolean;
+  followedAt?: string;
+  joinedAt?: string;
+}
+
 interface FollowerUser {
   id: string;
   username: string;
@@ -146,7 +156,7 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
         if (type === "followers") {
           // Map the response data to match our interface
           const followersData = data.followers || [];
-          const mappedFollowers = followersData.map((user: any) => ({
+          const mappedFollowers = followersData.map((user: UserData) => ({
             id: user.id,
             username: user.username,
             displayName: user.displayName || user.username,
@@ -161,7 +171,7 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
         } else {
           // Map the following data
           const followingData = data.following || [];
-          const mappedFollowing = followingData.map((user: any) => ({
+          const mappedFollowing = followingData.map((user: UserData) => ({
             id: user.id,
             username: user.username,
             displayName: user.displayName || user.username,
@@ -273,7 +283,7 @@ const FollowersList: React.FC<FollowersListProps> = ({ onBack }) => {
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {activeTab === "followers" ? (
                 <TranslatedText>
-                  When people follow you, they'll show up here
+                  When people follow you, they&apos;ll show up here
                 </TranslatedText>
               ) : (
                 <TranslatedText>

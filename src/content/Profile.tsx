@@ -47,8 +47,14 @@ interface Post {
   isBookmarkedByUser?: boolean;
 }
 
+interface SelectedUser {
+  username: string;
+  id: string;
+  _id?: string;
+}
+
 interface ProfileProps {
-  selectedUser?: any;
+  selectedUser?: SelectedUser;
 }
 
 const Profile: React.FC<ProfileProps> = ({ selectedUser }) => {
@@ -83,7 +89,7 @@ const Profile: React.FC<ProfileProps> = ({ selectedUser }) => {
       // If selectedUser is provided, use that data instead of fetching current user
       if (selectedUser) {
         setUser({
-          id: selectedUser._id,
+          id: selectedUser._id || selectedUser.id,
           username: selectedUser.username,
           displayName: selectedUser.username,
           avatar: generateConsistentAvatar(selectedUser.username),

@@ -3,6 +3,11 @@ import jwt from "jsonwebtoken";
 import dbConnect from "@/lib/mongodb";
 import UserPreferences from "@/models/UserPreferences";
 
+interface UserPreferencesData {
+  interests: string[];
+  hasCompletedOnboarding: boolean;
+}
+
 // GET - Get personalized post recommendations based on user preferences
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +15,10 @@ export async function GET(request: NextRequest) {
 
     const token = request.cookies.get("token")?.value;
     if (!token) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
     }
 
     // Verify JWT token
@@ -20,33 +28,43 @@ export async function GET(request: NextRequest) {
     };
 
     // Get user preferences
-    const preferences = await UserPreferences.findOne({ userId: decoded.userId });
+    const preferences = await UserPreferences.findOne({
+      userId: decoded.userId,
+    });
 
     if (!preferences) {
       // Return default recommendations if no preferences found
-      return NextResponse.json({
-        recommendations: getDefaultRecommendations(),
-        algorithm: 'default'
-      }, { status: 200 });
+      return NextResponse.json(
+        {
+          recommendations: getDefaultRecommendations(),
+          algorithm: "default",
+        },
+        { status: 200 }
+      );
     }
 
     // Generate recommendations based on preferences
     const recommendations = generateRecommendations(preferences);
 
-    return NextResponse.json({
-      recommendations,
-      algorithm: 'interest-based', // Simple algorithm based on interests only
-      userInterests: preferences.interests
-    }, { status: 200 });
-
+    return NextResponse.json(
+      {
+        recommendations,
+        algorithm: "interest-based", // Simple algorithm based on interests only
+        userInterests: preferences.interests,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Get recommendations error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
 // Helper function to generate recommendations based on user interests only
-function generateRecommendations(preferences: any) {
+function generateRecommendations(preferences: UserPreferencesData) {
   const { interests } = preferences;
 
   // Mock post data with categories matching user interests
@@ -54,12 +72,13 @@ function generateRecommendations(preferences: any) {
     {
       id: 1,
       author: "TechGuru",
-      content: "The future of AI is here! Just tried the new GPT model and it's incredible 🤖",
+      content:
+        "The future of AI is here! Just tried the new GPT model and it's incredible 🤖",
       category: "technology",
       type: "text",
       engagement: 150,
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      trending: true
+      trending: true,
     },
     {
       id: 2,
@@ -70,7 +89,7 @@ function generateRecommendations(preferences: any) {
       engagement: 89,
       timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
       trending: false,
-      imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"
+      imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4",
     },
     {
       id: 3,
@@ -80,17 +99,18 @@ function generateRecommendations(preferences: any) {
       type: "video",
       engagement: 230,
       timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-      trending: true
+      trending: true,
     },
     {
       id: 4,
       author: "BookWorm",
-      content: "Just finished reading 'The Midnight Library' - highly recommend! 📚",
+      content:
+        "Just finished reading 'The Midnight Library' - highly recommend! 📚",
       category: "books",
       type: "text",
       engagement: 45,
       timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
-      trending: false
+      trending: false,
     },
     {
       id: 5,
@@ -101,7 +121,7 @@ function generateRecommendations(preferences: any) {
       engagement: 112,
       timestamp: new Date(Date.now() - 10 * 60 * 60 * 1000), // 10 hours ago
       trending: false,
-      linkUrl: "https://example.com/tokyo-hidden-gems"
+      linkUrl: "https://example.com/tokyo-hidden-gems",
     },
     {
       id: 6,
@@ -112,28 +132,30 @@ function generateRecommendations(preferences: any) {
       engagement: 67,
       timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
       trending: false,
-      pollOptions: ["Rock", "Pop", "Jazz", "Electronic"]
+      pollOptions: ["Rock", "Pop", "Jazz", "Electronic"],
     },
     {
       id: 7,
       author: "ScienceDaily",
-      content: "Breakthrough in quantum computing brings us closer to quantum internet 🔬",
+      content:
+        "Breakthrough in quantum computing brings us closer to quantum internet 🔬",
       category: "science",
       type: "text",
       engagement: 189,
       timestamp: new Date(Date.now() - 14 * 60 * 60 * 1000), // 14 hours ago
-      trending: true
+      trending: true,
     },
     {
       id: 8,
       author: "ArtCritic",
-      content: "The influence of digital art on traditional painting techniques",
+      content:
+        "The influence of digital art on traditional painting techniques",
       category: "art",
       type: "image",
       engagement: 73,
       timestamp: new Date(Date.now() - 16 * 60 * 60 * 1000), // 16 hours ago
       trending: false,
-      imageUrl: "https://images.unsplash.com/photo-1541961017774-22349e4a1262"
+      imageUrl: "https://images.unsplash.com/photo-1541961017774-22349e4a1262",
     },
     {
       id: 9,
@@ -143,7 +165,7 @@ function generateRecommendations(preferences: any) {
       type: "video",
       engagement: 156,
       timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000), // 18 hours ago
-      trending: false
+      trending: false,
     },
     {
       id: 10,
@@ -153,8 +175,8 @@ function generateRecommendations(preferences: any) {
       type: "text",
       engagement: 134,
       timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
-      trending: false
-    }
+      trending: false,
+    },
   ];
 
   let filteredPosts = [...mockPosts];
@@ -162,29 +184,29 @@ function generateRecommendations(preferences: any) {
   // Filter posts based on user interests only
   if (interests && interests.length > 0) {
     // Prioritize posts matching user interests
-    const interestPosts = filteredPosts.filter(post => 
+    const interestPosts = filteredPosts.filter((post) =>
       interests.includes(post.category)
     );
-    
+
     // If we have posts matching interests, use them first
     if (interestPosts.length > 0) {
       // Sort interest-matching posts by engagement
       interestPosts.sort((a, b) => b.engagement - a.engagement);
-      
+
       // Add some non-interest posts for variety
       const otherPosts = filteredPosts
-        .filter(post => !interests.includes(post.category))
+        .filter((post) => !interests.includes(post.category))
         .sort((a, b) => b.engagement - a.engagement)
         .slice(0, 3); // Limit to 3 other posts
-      
+
       filteredPosts = [...interestPosts, ...otherPosts];
     }
   }
 
   // Simple mixed algorithm: sort by engagement and recency
   filteredPosts.sort((a, b) => {
-    const aScore = (a.timestamp.getTime() / 1000000) + (a.engagement * 0.1);
-    const bScore = (b.timestamp.getTime() / 1000000) + (b.engagement * 0.1);
+    const aScore = a.timestamp.getTime() / 1000000 + a.engagement * 0.1;
+    const bScore = b.timestamp.getTime() / 1000000 + b.engagement * 0.1;
     return bScore - aScore;
   });
 
@@ -197,12 +219,13 @@ function getDefaultRecommendations() {
     {
       id: 1,
       author: "Welcome",
-      content: "Welcome to BlurText! Set your preferences to see personalized content.",
+      content:
+        "Welcome to BlurText! Set your preferences to see personalized content.",
       category: "general",
       type: "text",
       engagement: 0,
       timestamp: new Date(),
-      trending: false
-    }
+      trending: false,
+    },
   ];
 }

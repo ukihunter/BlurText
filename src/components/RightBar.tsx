@@ -14,6 +14,20 @@ interface CryptoData {
   price_change_percentage_24h: number;
 }
 
+interface CoinData {
+  id?: string;
+  symbol?: string;
+  name?: string;
+  price_usd?: string;
+  percent_change_24h?: string;
+}
+
+interface User {
+  username: string;
+  id: string;
+  _id?: string;
+}
+
 interface SuggestedUser {
   _id: string;
   username: string;
@@ -26,7 +40,7 @@ const RightBar = ({
   onHashtagSelect,
 }: {
   onMenuClick?: (content: React.ReactNode, pageName?: string) => void;
-  onUserSelect?: (user: any) => void;
+  onUserSelect?: (user: User) => void;
   onHashtagSelect?: (hashtag: string) => void;
 }) => {
   const { translate } = useTranslation();
@@ -83,7 +97,12 @@ const RightBar = ({
     email: string;
   }) => {
     console.log("Selected user:", user);
-    onUserSelect?.(user);
+    const mappedUser: User = {
+      id: user._id,
+      username: user.username,
+      _id: user._id,
+    };
+    onUserSelect?.(mappedUser);
   };
 
   const handleHashtagSelect = (hashtag: string) => {
@@ -328,12 +347,12 @@ const RightBar = ({
           if (fallbackData.data && Array.isArray(fallbackData.data)) {
             const transformedData = fallbackData.data
               .slice(0, 5)
-              .map((coin: any) => ({
+              .map((coin: CoinData) => ({
                 id: coin.id || coin.symbol || "unknown",
                 name: coin.name || "Unknown",
-                current_price: parseFloat(coin.price_usd) || 0,
+                current_price: parseFloat(coin.price_usd || "0") || 0,
                 price_change_percentage_24h:
-                  parseFloat(coin.percent_change_24h) || 0,
+                  parseFloat(coin.percent_change_24h || "0") || 0,
               }));
 
             console.log(

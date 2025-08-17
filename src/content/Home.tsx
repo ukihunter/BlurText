@@ -115,9 +115,14 @@ const Home: React.FC<HomeProps> = ({ selectedHashtag }) => {
       let url = "/api/posts";
       if (selectedHashtag) {
         url += `?hashtag=${encodeURIComponent(selectedHashtag)}`;
-        console.log("Fetching posts with hashtag filter:", selectedHashtag, "URL:", url);
+        console.log(
+          "Fetching posts with hashtag filter:",
+          selectedHashtag,
+          "URL:",
+          url
+        );
       }
-      
+
       const response = await fetch(url, {
         credentials: "include",
       });
@@ -334,7 +339,9 @@ const Home: React.FC<HomeProps> = ({ selectedHashtag }) => {
           <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="text-blue-600 dark:text-blue-400 text-xl">#</div>
+                <div className="text-blue-600 dark:text-blue-400 text-xl">
+                  #
+                </div>
                 <span className="text-blue-800 dark:text-blue-200 font-medium">
                   Filtering by #{selectedHashtag}
                 </span>

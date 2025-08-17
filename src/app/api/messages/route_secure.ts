@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     // Validate and sanitize chatId
     try {
       sanitizeInput.mongodbId(chatId);
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: "Invalid chat ID" }, { status: 400 });
     }
 
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     // Validate and sanitize chatId
     try {
       sanitizeInput.mongodbId(chatId);
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: "Invalid chat ID" }, { status: 400 });
     }
 

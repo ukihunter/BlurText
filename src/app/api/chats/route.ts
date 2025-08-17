@@ -42,9 +42,6 @@ export async function GET(request: NextRequest) {
           (p: string) => p !== username
         );
 
-        // Get other participant's details
-        const otherUser = await User.findOne({ username: otherParticipant });
-
         // Get unread message count for this chat (excluding messages deleted by current user)
         const unreadCount = await Message.countDocuments({
           chatId: chat._id.toString(),

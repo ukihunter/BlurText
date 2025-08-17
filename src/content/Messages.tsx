@@ -13,6 +13,12 @@ import ChatOptions from "@/components/ChatOptions";
 import MessageSelectionBar from "@/components/MessageSelectionBar";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
+interface MessageData {
+  createdAt: string | Date;
+  readAt?: string | Date | null;
+  [key: string]: unknown;
+}
+
 interface User {
   id: string;
   username: string;
@@ -178,11 +184,13 @@ const Messages: React.FC<MessagesProps> = ({
         const data = await response.json();
 
         // Ensure all message dates are properly converted to Date objects
-        const formattedMessages = (data.messages || []).map((msg: any) => ({
-          ...msg,
-          createdAt: new Date(msg.createdAt),
-          readAt: msg.readAt ? new Date(msg.readAt) : null,
-        }));
+        const formattedMessages = (data.messages || []).map(
+          (msg: MessageData) => ({
+            ...msg,
+            createdAt: new Date(msg.createdAt),
+            readAt: msg.readAt ? new Date(msg.readAt) : null,
+          })
+        );
 
         setMessages(formattedMessages);
 

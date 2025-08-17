@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import dbConnect from "@/lib/mongodb";
-import UserFollows from "@/models/UserFollows";
 import Follow from "@/models/Follow";
-import User from "@/models/User";
 import { generateConsistentAvatar } from "@/utils/avatarUtils";
+
+interface UserDocument {
+  _id: string;
+  username: string;
+  createdAt: Date;
+  isAnonymous: boolean;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +17,10 @@ export async function GET(request: NextRequest) {
 
     const token = request.cookies.get("token")?.value;
     if (!token) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
     }
 
     // Verify JWT token
@@ -26,7 +34,10 @@ export async function GET(request: NextRequest) {
     const userId = url.searchParams.get("userId") || decoded.userId;
 
     if (!type || !["following", "followers"].includes(type)) {
-      return NextResponse.json({ error: "Invalid type parameter" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid type parameter" },
+        { status: 400 }
+      );
     }
 
     let query;
@@ -50,7 +61,7 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 });
 
     const users = follows.map((follow) => {
-      const user = follow[populateField] as any;
+      const user = follow[populateField] as UserDocument;
       return {
         id: user._id,
         username: user.username,

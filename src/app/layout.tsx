@@ -19,6 +19,12 @@ import More from "@/options/More";
 import Privacy from "@/options/Privacy";
 import { TranslatedText } from "@/hooks/useTranslation";
 
+interface User {
+  username: string;
+  id: string;
+  _id?: string;
+}
+
 //export const metadata = {
 //title: "BLUR TEXT",
 //description: "Anonymous app.",
@@ -29,38 +35,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Page content mapping function
-  const getPageContent = (pageName: string): React.ReactNode => {
-    switch (pageName) {
-      case "Home":
-        return <Home selectedHashtag={selectedHashtag} />;
-      case "Explore":
-        return <Explore />;
-      case "Messages":
-        return <Messages key={messageKey} selectedUser={selectedMessageUser} />;
-      case "Notification":
-        return (
-          <div>
-            <TranslatedText>Notification Content</TranslatedText>
-          </div>
-        );
-      case "Bookmarks":
-        return (
-          <div>
-            <TranslatedText>Bookmarks Content</TranslatedText>
-          </div>
-        );
-      case "Profile":
-        return <Profile selectedUser={selectedProfileUser} />;
-      case "More":
-        return <More />;
-      case "Privacy":
-        return <Privacy />;
-      default:
-        return children; // Fallback to default content
-    }
-  };
-
   // Initialize with null first, then load from localStorage or fallback to Home
   const [activeContent, setActiveContent] = useState<React.ReactNode>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,8 +42,12 @@ export default function RootLayout({
   const [showInitialLoading, setShowInitialLoading] = useState(true);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [currentPage, setCurrentPage] = useState<string>("Home");
-  const [selectedMessageUser, setSelectedMessageUser] = useState<any>(null);
-  const [selectedProfileUser, setSelectedProfileUser] = useState<any>(null);
+  const [selectedMessageUser, setSelectedMessageUser] = useState<User | null>(
+    null
+  );
+  const [selectedProfileUser, setSelectedProfileUser] = useState<User | null>(
+    null
+  );
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [messageKey, setMessageKey] = useState(0);
   const [user, setUser] = useState<{
@@ -79,6 +57,52 @@ export default function RootLayout({
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [isCheckingPreferences, setIsCheckingPreferences] = useState(false);
 
+  // Page content mapping function
+  const getPageContent = useCallback(
+    (pageName: string): React.ReactNode => {
+      switch (pageName) {
+        case "Home":
+          return <Home selectedHashtag={selectedHashtag} />;
+        case "Explore":
+          return <Explore />;
+        case "Messages":
+          return (
+            <Messages
+              key={messageKey}
+              selectedUser={selectedMessageUser || undefined}
+            />
+          );
+        case "Notification":
+          return (
+            <div>
+              <TranslatedText>Notification Content</TranslatedText>
+            </div>
+          );
+        case "Bookmarks":
+          return (
+            <div>
+              <TranslatedText>Bookmarks Content</TranslatedText>
+            </div>
+          );
+        case "Profile":
+          return <Profile selectedUser={selectedProfileUser || undefined} />;
+        case "More":
+          return <More />;
+        case "Privacy":
+          return <Privacy />;
+        default:
+          return children; // Fallback to default content
+      }
+    },
+    [
+      selectedHashtag,
+      messageKey,
+      selectedMessageUser,
+      selectedProfileUser,
+      children,
+    ]
+  );
+
   // Restore page state from localStorage on component mount
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -87,7 +111,7 @@ export default function RootLayout({
       setCurrentPage(pageToLoad);
       setActiveContent(getPageContent(pageToLoad));
     }
-  }, []);
+  }, [getPageContent]);
 
   // Save current page to localStorage whenever it changes
   useEffect(() => {
@@ -99,9 +123,10 @@ export default function RootLayout({
   // Check if user is logged in when component mounts
   useEffect(() => {
     checkAuthStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       const response = await fetch("/api/auth/me", {
         method: "GET",
@@ -141,7 +166,7 @@ export default function RootLayout({
     } finally {
       setIsAuthChecked(true);
     }
-  };
+  }, []);
 
   const checkUserPreferences = async () => {
     try {
@@ -235,53 +260,34 @@ export default function RootLayout({
   };
 
   // Function to navigate to user profile
-  const handleViewUserProfile = useCallback((user: any) => {
-    console.log("Viewing user profile:", user);
-    setSelectedProfileUser(user);
-    setIsLoading(true);
-    setTimeout(() => {
-      setCurrentPage("Profile");
-      setActiveContent(getPageContent("Profile"));
-      setIsLoading(false);
-    }, 300);
-  }, []);
+  const handleViewUserProfile = useCallback(
+    (user: User) => {
+      console.log("Viewing user profile:", user);
+      setSelectedProfileUser(user);
+      setIsLoading(true);
+      setTimeout(() => {
+        setCurrentPage("Profile");
+        setActiveContent(getPageContent("Profile"));
+        setIsLoading(false);
+      }, 300);
+    },
+    [getPageContent]
+  );
 
   // Function to filter by hashtag
-  const handleFilterByHashtag = useCallback((hashtag: string) => {
-    console.log("Filtering by hashtag:", hashtag);
-    setSelectedHashtag(hashtag);
-    setIsLoading(true);
-    setTimeout(() => {
-      setCurrentPage("Home");
-      setActiveContent(getPageContent("Home"));
-      setIsLoading(false);
-    }, 300);
-  }, []);
-
-  // Function to navigate to Messages with a specific user selected
-  const handleMessageUser = useCallback((user: any) => {
-    console.log("🔔 handleMessageUser called with:", user);
-
-    // Force clear any existing selected user first
-    setSelectedMessageUser(null);
-    setMessageKey((prev) => prev + 1); // Force new component instance
-
-    // Set the new user after a brief delay to ensure state is cleared
-    setTimeout(() => {
-      setSelectedMessageUser(user);
+  const handleFilterByHashtag = useCallback(
+    (hashtag: string) => {
+      console.log("Filtering by hashtag:", hashtag);
+      setSelectedHashtag(hashtag);
       setIsLoading(true);
-
       setTimeout(() => {
-        console.log(
-          "🔔 Navigating to Messages with selectedMessageUser:",
-          user
-        );
-        setCurrentPage("Messages");
-        setActiveContent(getPageContent("Messages"));
+        setCurrentPage("Home");
+        setActiveContent(getPageContent("Home"));
         setIsLoading(false);
-      }, 100);
-    }, 50);
-  }, []);
+      }, 300);
+    },
+    [getPageContent]
+  );
 
   const handleLogin = (userData?: { username: string; id: string }) => {
     setIsLoggedIn(true);
@@ -495,7 +501,7 @@ export default function RootLayout({
                   {activeContent}
                 </div>
                 <div className="hidden ml-4 md:ml-8 lg:block lg:w-80 xl:w-96 sticky top-0 h-screen overflow-y-auto scrollable-content">
-                  <RightBar 
+                  <RightBar
                     onMenuClick={handleMenuClick}
                     onUserSelect={handleViewUserProfile}
                     onHashtagSelect={handleFilterByHashtag}

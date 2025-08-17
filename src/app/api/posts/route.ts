@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = decoded.userId;
-    
+
     // Check for hashtag filter
     const { searchParams } = new URL(request.url);
     const hashtagFilter = searchParams.get("hashtag");
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     // If hashtag filter is provided, return posts with that hashtag
     if (hashtagFilter) {
       const filteredPosts = await Post.find({
-        tags: { $in: [hashtagFilter] }
+        tags: { $in: [hashtagFilter] },
       })
         .sort({ createdAt: -1 })
         .limit(50)
