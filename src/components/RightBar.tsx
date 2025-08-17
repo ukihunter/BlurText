@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import Icon from "./Icon";
 import Privacy from "@/options/Privacy";
 import SearchModal from "./SearchModal";
@@ -22,6 +21,13 @@ interface CoinData {
   percent_change_24h?: string;
 }
 
+interface NewsArticle {
+  title?: string;
+  url?: string;
+  description?: string;
+  publishedAt?: string;
+}
+
 interface User {
   username: string;
   id: string;
@@ -39,21 +45,45 @@ const RightBar = ({
   onUserSelect,
   onHashtagSelect,
 }: {
-  onMenuClick?: (content: React.ReactNode, pageName?: string) => void;
-  onUserSelect?: (user: User) => void;
-  onHashtagSelect?: (hashtag: string) => void;
+  onMenuClick?: (_content: React.ReactNode, _pageName?: string) => void;
+  onUserSelect?: (_user: User) => void;
+  onHashtagSelect?: (_hashtag: string) => void;
 }) => {
   const { translate } = useTranslation();
   const [searchPlaceholder, setSearchPlaceholder] = useState("search");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   // Fetch news articles from the API
-  const [news, setNews] = useState<{ title: string; url: string }[]>([]);
+  const [news, setNews] = useState<
+    {
+      title: string;
+      url: string;
+      description?: string;
+      publishedAt?: string;
+      timeAgo?: string;
+    }[]
+  >([]);
   const [loading, setLoading] = useState(true);
+
+  // Cybersecurity alerts state
+  const [cyberAlerts, setCyberAlerts] = useState<
+    {
+      title: string;
+      description: string;
+      severity: string;
+      date: string;
+      url?: string;
+    }[]
+  >([]);
+  const [cyberLoading, setCyberLoading] = useState(true);
+  const [cyberDataIsReal, setCyberDataIsReal] = useState(false);
 
   // Cryptocurrency state
   const [crypto, setCrypto] = useState<CryptoData[]>([]);
   const [cryptoLoading, setCryptoLoading] = useState(true);
+
+  // News state
+  const [newsDataIsReal, setNewsDataIsReal] = useState(false);
 
   // Suggested users state
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
@@ -157,7 +187,7 @@ const RightBar = ({
     userId: string,
     event?: React.MouseEvent
   ) => {
-    console.log("🔄 Follow button clicked for user:", userId);
+    console.log("Follow button clicked for user:", userId);
 
     // Prevent any default behavior and event bubbling
     if (event) {
@@ -167,7 +197,7 @@ const RightBar = ({
 
     // Prevent multiple clicks while processing
     if (processingUsers[userId]) {
-      console.log("⏳ Already processing for user:", userId);
+      console.log("Already processing for user:", userId);
       return;
     }
 
@@ -176,12 +206,12 @@ const RightBar = ({
       setProcessingUsers((prev) => ({ ...prev, [userId]: true }));
 
       const isCurrentlyFollowing = followingStates[userId];
-      console.log("📊 Current following state:", isCurrentlyFollowing);
+      console.log("Current following state:", isCurrentlyFollowing);
 
       const endpoint = isCurrentlyFollowing ? "/api/unfollow" : "/api/follow";
       const method = isCurrentlyFollowing ? "DELETE" : "POST";
 
-      console.log("🌐 Making API call to:", endpoint, "with method:", method);
+      console.log("Making API call to:", endpoint, "with method:", method);
 
       const response = await fetch(endpoint, {
         method,
@@ -191,17 +221,17 @@ const RightBar = ({
         body: JSON.stringify({ userId: userId }),
       });
 
-      console.log("✅ API response status:", response.status);
+      console.log("API response status:", response.status);
 
       if (response.ok) {
         console.log(
-          "🎉 Follow/unfollow successful, triggering full page refresh..."
+          "Follow/unfollow successful, triggering full page refresh..."
         );
 
         // Trigger full page refresh
         window.location.reload();
 
-        console.log("✅ Page refresh triggered");
+        console.log("Page refresh triggered");
       } else {
         const errorData = await response.json();
         console.error("❌ Follow/unfollow failed:", errorData.error);
@@ -211,7 +241,7 @@ const RightBar = ({
     } finally {
       // Clear processing state
       setProcessingUsers((prev) => ({ ...prev, [userId]: false }));
-      console.log("🏁 handleFollowToggle completed");
+      console.log("handleFollowToggle completed");
     }
   };
 
@@ -219,74 +249,346 @@ const RightBar = ({
   const fetchNews = async () => {
     setLoading(true);
 
-    // Helper function for safe fetch with timeout
-    const safeFetch = async (url: string, timeoutMs: number = 10000) => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      try {
-        const response = await fetch(url, {
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "BlurText/1.0",
-          },
-          signal: controller.signal,
-          mode: "cors",
-        });
-        clearTimeout(timeoutId);
-        return response;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      }
-    };
-
     try {
-      console.log("Attempting to fetch news data...");
-      const response = await safeFetch(
-        "https://newsapi.org/v2/top-headlines?country=us&apiKey=9d72a6cdbdf243bf904090d76ec5f3f2"
+      console.log(
+        "Attempting to fetch latest real news data via server API..."
       );
 
+      // Use our server-side API instead of direct NewsAPI calls
+      const response = await fetch("/api/news?type=general", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
       if (response.ok) {
-        const data = await response.json();
-        if (data.articles && Array.isArray(data.articles)) {
-          console.log("Successfully fetched news data");
-          setNews(data.articles.slice(0, 5));
-          return; // Success, exit early
+        const articles = await response.json();
+
+        if (Array.isArray(articles) && articles.length > 0) {
+          console.log(
+            `Successfully fetched ${articles.length} real news articles from server API`
+          );
+
+          // Filter and process articles for freshness
+          const freshArticles = articles.filter((article: NewsArticle) => {
+            if (!article.publishedAt) return false;
+
+            const publishedDate = new Date(article.publishedAt);
+            const hoursOld =
+              (Date.now() - publishedDate.getTime()) / (1000 * 60 * 60);
+
+            // Only include articles less than 72 hours old
+            return hoursOld <= 72 && article.title && article.title.length > 10;
+          });
+
+          if (freshArticles.length > 0) {
+            const newsItems = freshArticles
+              .slice(0, 4)
+              .map((article: NewsArticle) => {
+                // Calculate time ago for display
+                const publishedDate = new Date(article.publishedAt!);
+                const timeDiff = Date.now() - publishedDate.getTime();
+                const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+                const minutesAgo = Math.floor(timeDiff / (1000 * 60));
+
+                let timeAgoText = "";
+                if (minutesAgo < 60) {
+                  timeAgoText = `${minutesAgo}m ago`;
+                } else if (hoursAgo < 24) {
+                  timeAgoText = `${hoursAgo}h ago`;
+                } else {
+                  const daysAgo = Math.floor(hoursAgo / 24);
+                  timeAgoText = `${daysAgo}d ago`;
+                }
+
+                return {
+                  title: article.title || "Breaking News Update",
+                  url: article.url || "#",
+                  description: article.description || "",
+                  publishedAt: article.publishedAt,
+                  timeAgo: timeAgoText,
+                };
+              });
+
+            setNews(newsItems);
+            setNewsDataIsReal(true);
+            console.log(
+              "Fresh real-time news data loaded successfully via server"
+            );
+            return; // Success, exit early
+          }
+        }
+      } else {
+        console.warn(`Server API responded with status: ${response.status}`);
+      }
+
+      // If server API fails, try RSS feeds or other sources
+      console.log("Trying alternative news sources...");
+
+      // Try fetching from a public RSS to JSON service
+      const rssResponse = await fetch(
+        "https://api.rss2json.com/v1/api.json?rss_url=https://feeds.reuters.com/reuters/technologyNews&api_key=YOUR_API_KEY&count=4"
+      );
+
+      if (rssResponse.ok) {
+        const rssData = await rssResponse.json();
+        if (rssData.items && rssData.items.length > 0) {
+          const rssItems = rssData.items.slice(0, 4).map((item: any) => ({
+            title: item.title || "News Update",
+            url: item.link || "#",
+            description: item.description?.replace(/<[^>]*>/g, "") || "",
+            publishedAt: item.pubDate || new Date().toISOString(),
+            timeAgo: "Recently",
+          }));
+
+          setNews(rssItems);
+          setNewsDataIsReal(true);
+          console.log("News loaded from RSS feed");
+          return;
         }
       }
 
-      throw new Error(`News API failed with status: ${response.status}`);
+      throw new Error("All news sources failed");
     } catch (error) {
-      console.warn("News API failed, using fallback data:", error);
+      console.error("❌ All news sources failed:", error);
 
-      // Set fallback news to prevent empty state
+      // Show error message with helpful info
       setNews([
         {
-          title: "Technology News - Stay Updated",
-          url: "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB",
+          title: "Real-time News Unavailable",
+          url: "https://news.google.com/",
+          description:
+            "News services are temporarily unavailable. This could be due to network issues or API rate limits. Click to visit Google News.",
+          publishedAt: new Date().toISOString(),
+          timeAgo: "Now",
         },
         {
-          title: "Market Analysis & Trends",
-          url: "https://news.google.com/topics/CAAqKggKIiRDQkFTRlFvSUwyMHZNREY2WVdaU0VRb01hMjF2Y21WaEVRSUJBaWdKTkE",
-        },
-        {
-          title: "Latest Tech Developments",
-          url: "https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtVnVHZ0pWVXlnQVAB",
+          title: "Trying to Connect...",
+          url: "https://www.reuters.com/",
+          description:
+            "Attempting to fetch live news from multiple sources. Please wait or try refreshing.",
+          publishedAt: new Date().toISOString(),
+          timeAgo: "Now",
         },
       ]);
+      setNewsDataIsReal(false);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch cybersecurity alerts and data breach information
+  const fetchCyberAlerts = async () => {
+    setCyberLoading(true);
+
+    try {
+      console.log(
+        "Attempting to fetch real cybersecurity data via server API..."
+      );
+
+      // Use our server-side API for cybersecurity news
+      const response = await fetch("/api/news?type=cyber", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const articles = await response.json();
+
+        if (Array.isArray(articles) && articles.length > 0) {
+          console.log(
+            `Successfully fetched ${articles.length} real cybersecurity articles from server API`
+          );
+
+          // Filter articles for cybersecurity relevance
+          const relevantArticles = articles.filter((article: NewsArticle) => {
+            const content = (
+              article.title +
+              " " +
+              article.description
+            ).toLowerCase();
+            return (
+              content.includes("security") ||
+              content.includes("cyber") ||
+              content.includes("hack") ||
+              content.includes("breach") ||
+              content.includes("vulnerability") ||
+              content.includes("malware") ||
+              content.includes("ransomware") ||
+              content.includes("phishing")
+            );
+          });
+
+          if (relevantArticles.length > 0) {
+            const cyberData = relevantArticles
+              .slice(0, 4)
+              .map((article: NewsArticle) => {
+                // Determine severity based on keywords in title/description
+                let severity = "Medium";
+                const content = (
+                  article.title +
+                  " " +
+                  article.description
+                ).toLowerCase();
+
+                if (
+                  content.includes("critical") ||
+                  content.includes("zero-day") ||
+                  content.includes("data breach") ||
+                  content.includes("major breach") ||
+                  content.includes("massive hack")
+                ) {
+                  severity = "Critical";
+                } else if (
+                  content.includes("high") ||
+                  content.includes("ransomware") ||
+                  content.includes("cyber attack") ||
+                  content.includes("exploit") ||
+                  content.includes("compromised")
+                ) {
+                  severity = "High";
+                } else if (
+                  content.includes("vulnerability") ||
+                  content.includes("malware") ||
+                  content.includes("patch") ||
+                  content.includes("warning")
+                ) {
+                  severity = "Medium";
+                } else {
+                  severity = "Low";
+                }
+
+                // Format date to be more recent-looking
+                const publishedDate = article.publishedAt
+                  ? new Date(article.publishedAt)
+                  : new Date();
+                const timeDiff = Date.now() - publishedDate.getTime();
+                const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+                const daysAgo = Math.floor(hoursAgo / 24);
+
+                let timeAgoText = "";
+                if (hoursAgo < 1) {
+                  timeAgoText = "Just now";
+                } else if (hoursAgo < 24) {
+                  timeAgoText = `${hoursAgo}h ago`;
+                } else if (daysAgo < 7) {
+                  timeAgoText = `${daysAgo}d ago`;
+                } else {
+                  timeAgoText = publishedDate.toLocaleDateString();
+                }
+
+                return {
+                  title: article.title || "Security Alert",
+                  description:
+                    article.description || "Security-related incident reported",
+                  severity: severity,
+                  date: timeAgoText,
+                  url: article.url || "#",
+                };
+              });
+
+            setCyberAlerts(cyberData);
+            setCyberDataIsReal(true);
+            console.log(
+              "Real cybersecurity data loaded successfully via server"
+            );
+            return; // Success, exit early
+          }
+        }
+      } else {
+        console.warn(`Server API responded with status: ${response.status}`);
+      }
+
+      // If server API fails, try some free security RSS feeds
+      console.log("Trying alternative cybersecurity sources...");
+
+      // Try US-CERT alerts (free feed)
+      const certResponse = await fetch(
+        "https://api.rss2json.com/v1/api.json?rss_url=https://www.us-cert.gov/ncas/alerts.xml&count=4"
+      );
+
+      if (certResponse.ok) {
+        const certData = await certResponse.json();
+        if (certData.items && certData.items.length > 0) {
+          const certItems = certData.items.slice(0, 4).map((item: any) => ({
+            title: item.title || "Security Alert",
+            description:
+              (
+                item.description?.replace(/<[^>]*>/g, "") ||
+                "US-CERT security alert"
+              ).substring(0, 100) + "...",
+            severity: "High",
+            date: "Recently",
+            url: item.link || "https://www.cisa.gov/alerts",
+          }));
+
+          setCyberAlerts(certItems);
+          setCyberDataIsReal(true);
+          console.log("Cybersecurity data loaded from US-CERT RSS");
+          return;
+        }
+      }
+
+      throw new Error("All cybersecurity sources failed");
+    } catch (error) {
+      console.error("❌ All cybersecurity sources failed:", error);
+
+      // Show error message with helpful info
+      setCyberAlerts([
+        {
+          title: "Real-time Data Unavailable",
+          description:
+            "Cybersecurity feeds are temporarily unavailable. This could be due to network issues or API rate limits. Click to visit CISA for latest alerts.",
+          severity: "Info",
+          date: "Now",
+          url: "https://www.cisa.gov/alerts",
+        },
+      ]);
+      setCyberDataIsReal(false);
+    } finally {
+      setCyberLoading(false);
+    }
+  };
+
   useEffect(() => {
+    console.log("RightBar component loading - fetching real-time data...");
+
+    // Add some immediate sample data while APIs load
+    setNews([
+      {
+        title: "Loading Latest News...",
+        url: "#",
+        description: "Fetching real-time news from multiple sources...",
+        publishedAt: new Date().toISOString(),
+        timeAgo: "Loading...",
+      },
+    ]);
+
+    setCyberAlerts([
+      {
+        title: "Loading Security Alerts...",
+        description: "Fetching real-time cybersecurity data...",
+        severity: "Info",
+        date: "Loading...",
+        url: "#",
+      },
+    ]);
+
     fetchNews();
+    fetchCyberAlerts();
 
-    // Refresh news every 30 minutes
-    const interval = setInterval(fetchNews, 30 * 60 * 1000);
+    // Refresh news every 15 minutes for more real-time updates
+    const newsInterval = setInterval(fetchNews, 15 * 60 * 1000);
+    // Refresh cyber alerts every 30 minutes for fresh security data
+    const cyberInterval = setInterval(fetchCyberAlerts, 30 * 60 * 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(newsInterval);
+      clearInterval(cyberInterval);
+    };
   }, []);
 
   // Fetch cryptocurrency data with comprehensive error handling
@@ -425,25 +727,143 @@ const RightBar = ({
           <Icon name="search.svg" width={20} height={20} />
         </div>
       </div>
-      {/* Search box*/}
+      {/* Cybersecurity Alerts section */}
       <div className="mt-4 border border-gray-300 dark:border-zinc-600 rounded-3xl p-4 bg-gray-50 dark:bg-[#262335] mb-4 transition-colors duration-300">
-        <div className="mt-2 mb-1 ml-3">
-          <div className="font-bold text-[19px] mb-1">
-            <TranslatedText>Unlock Premium Features</TranslatedText>
+        <div className="flex justify-between items-center mb-3">
+          <div className="font-bold text-[19px] mb-1 flex items-center">
+            <TranslatedText>Cybersecurity Alerts</TranslatedText>
+            {cyberDataIsReal && (
+              <span className="ml-2 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+                LIVE
+              </span>
+            )}
           </div>
-          <span className="text-gray-700 dark:text-white text-[14px] font-extralight">
-            <TranslatedText>
-              Get access to advanced anonymous posting, enhanced privacy
-              controls, and exclusive tools by upgrading to Premium.
-            </TranslatedText>
-          </span>
-
-          <Link
-            href="/subscribe"
-            className="mt-3 flex justify-center flex-direction-row bg-[#1a8cd8] w-40 rounded-full py-2 text-center text-white font-bold"
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fetchCyberAlerts().catch(console.warn);
+            }}
+            className="text-xs text-blue-500 hover:text-blue-600 transition-colors"
+            disabled={cyberLoading}
           >
-            <TranslatedText>Upgrade Now</TranslatedText>
-          </Link>
+            {cyberLoading ? (
+              <TranslatedText>Loading...</TranslatedText>
+            ) : (
+              <TranslatedText>Refresh</TranslatedText>
+            )}
+          </button>
+        </div>
+
+        {cyberLoading ? (
+          <div className="text-center py-4 text-gray-500">
+            <div className="animate-pulse">
+              <TranslatedText>Loading security alerts...</TranslatedText>
+            </div>
+          </div>
+        ) : Array.isArray(cyberAlerts) && cyberAlerts.length > 0 ? (
+          <div className="space-y-3">
+            {cyberAlerts.slice(0, 3).map((alert, index) => (
+              <div
+                key={index}
+                className="border-l-4 border-red-400 pl-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-r-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+              >
+                {alert.url ? (
+                  <a
+                    href={alert.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-sm text-red-700 dark:text-red-300 hover:underline">
+                        {alert.title}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          alert.severity === "Critical"
+                            ? "bg-red-500 text-white"
+                            : alert.severity === "High"
+                            ? "bg-orange-500 text-white"
+                            : alert.severity === "Medium"
+                            ? "bg-yellow-500 text-black"
+                            : "bg-blue-500 text-white"
+                        }`}
+                      >
+                        {alert.severity}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">
+                      {alert.description}
+                    </p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {alert.date}
+                    </span>
+                  </a>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-sm text-red-700 dark:text-red-300">
+                        {alert.title}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          alert.severity === "Critical"
+                            ? "bg-red-500 text-white"
+                            : alert.severity === "High"
+                            ? "bg-orange-500 text-white"
+                            : alert.severity === "Medium"
+                            ? "bg-yellow-500 text-black"
+                            : "bg-blue-500 text-white"
+                        }`}
+                      >
+                        {alert.severity}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">
+                      {alert.description}
+                    </p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {alert.date}
+                    </span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-gray-500">
+            <TranslatedText>No alerts available</TranslatedText>
+          </div>
+        )}
+
+        <div className="mt-3 text-center">
+          <div className="flex justify-center space-x-4 text-xs">
+            <a
+              href="https://cve.mitre.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-600 font-medium"
+            >
+              <TranslatedText>CVE Database</TranslatedText>
+            </a>
+            <a
+              href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-600 font-medium"
+            >
+              <TranslatedText>CISA Alerts</TranslatedText>
+            </a>
+            <a
+              href="https://krebsonsecurity.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-600 font-medium"
+            >
+              <TranslatedText>Security News</TranslatedText>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -525,9 +945,16 @@ const RightBar = ({
       {/* News section */}
       <div className="mt-17 border border-gray-300 dark:border-zinc-600 rounded-3xl p-4 bg-gray-50 dark:bg-[#262335] transition-colors duration-300">
         <div className="flex justify-between items-center mb-4">
-          <span className="font-bold">
-            <TranslatedText>Related NEWS</TranslatedText>
-          </span>
+          <div className="flex items-center">
+            <span className="font-bold">
+              <TranslatedText>Latest News</TranslatedText>
+            </span>
+            {newsDataIsReal && (
+              <span className="ml-2 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+                LIVE
+              </span>
+            )}
+          </div>
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -547,24 +974,46 @@ const RightBar = ({
         {loading ? (
           <div className="text-center py-4 text-gray-500">
             <div className="animate-pulse">
-              <TranslatedText>Loading...</TranslatedText>
+              <TranslatedText>Loading latest news...</TranslatedText>
             </div>
           </div>
         ) : Array.isArray(news) && news.length > 0 ? (
-          <ul className="list-disc gap-2 pl-4">
-            {news.slice(0, 3).map((article, index) => (
-              <li key={index} className="mb-3">
+          <div className="space-y-3">
+            {news.slice(0, 4).map((article, index) => (
+              <div
+                key={index}
+                className="border-b border-gray-200 dark:border-gray-600 pb-3 last:border-b-0"
+              >
                 <a
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-600 dark:text-neutral-400 hover:underline font-extralight text-[14px] justify-center flex"
+                  className="block hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors"
                 >
-                  {article.title}
+                  <h4 className="font-medium text-sm text-gray-900 dark:text-white hover:underline line-clamp-2">
+                    {article.title}
+                  </h4>
+                  {article.description && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                      {article.description}
+                    </p>
+                  )}
+                  <div className="flex justify-between items-center mt-1">
+                    {article.publishedAt && (
+                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                        {new Date(article.publishedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                    {article.timeAgo && (
+                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        {article.timeAgo}
+                      </span>
+                    )}
+                  </div>
                 </a>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : (
           <div className="text-center py-4 text-gray-500">
             <TranslatedText>No news available</TranslatedText>
@@ -582,13 +1031,14 @@ const RightBar = ({
             </div>
           </div>
         )}
-        <div style={{ color: "#1d9bf0" }}>
+        <div className="mt-4 text-center">
           <a
             href="https://news.google.com/home?hl=en-US&gl=US&ceid=US:en"
             target="_blank"
             rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-600 text-sm font-medium"
           >
-            <TranslatedText>see more</TranslatedText>
+            <TranslatedText>See more news</TranslatedText>
           </a>
         </div>
       </div>
