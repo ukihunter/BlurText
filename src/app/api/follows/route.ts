@@ -67,7 +67,6 @@ export async function GET(request: NextRequest) {
         username: user.username,
         displayName: user.username, // Using username as displayName for anonymous users
         avatar: generateConsistentAvatar(user.username),
-        isOnline: Math.random() > 0.5, // Random online status for demo
         followedAt: follow.createdAt,
       };
     });

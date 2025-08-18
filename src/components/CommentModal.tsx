@@ -27,6 +27,7 @@ interface CommentModalProps {
   postAuthor: string;
   postContent: string;
   currentUser: User;
+  onCommentAdded?: () => void;
 }
 
 const CommentModal: React.FC<CommentModalProps> = ({
@@ -36,6 +37,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
   postAuthor,
   postContent,
   currentUser: _currentUser,
+  onCommentAdded,
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -91,6 +93,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
         const data = await response.json();
         setComments((prev) => [data.comment, ...prev]);
         setNewComment("");
+        onCommentAdded?.(); // Call the callback to refresh parent component
       }
     } catch (error) {
       console.error("Error posting comment:", error);

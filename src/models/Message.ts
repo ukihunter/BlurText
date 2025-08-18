@@ -4,7 +4,7 @@ export interface IMessage extends Document {
   chatId: string;
   sender: string;
   content: string;
-  messageType: 'text' | 'emoji' | 'image' | 'file';
+  messageType: 'text' | 'emoji';
   status: 'sending' | 'sent' | 'delivered' | 'read';
   isRead: boolean;
   readAt?: Date;
@@ -30,7 +30,7 @@ const MessageSchema = new Schema<IMessage>({
   },
   messageType: {
     type: String,
-    enum: ['text', 'emoji', 'image', 'file'],
+    enum: ['text', 'emoji'],
     default: 'text',
   },
   status: {

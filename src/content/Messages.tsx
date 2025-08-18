@@ -24,7 +24,6 @@ interface User {
   username: string;
   displayName: string;
   avatar: string;
-  isOnline: boolean;
   followedAt?: string;
   joinedAt?: string;
   isFollower?: boolean;
@@ -36,7 +35,7 @@ interface ChatMessage {
   id: string;
   content: string;
   sender: string;
-  messageType: "text" | "emoji" | "image" | "file";
+  messageType: "text" | "emoji";
   status: "sending" | "sent" | "delivered" | "read";
   createdAt: Date | string;
   isSent: boolean;
@@ -50,7 +49,6 @@ interface Chat {
     username: string;
     displayName: string;
     avatar: string;
-    isOnline: boolean;
   };
   lastMessage?: string;
   lastMessageTime?: Date;
@@ -641,9 +639,6 @@ const Messages: React.FC<MessagesProps> = ({
                   className="w-10 h-10 rounded-full"
                   onError={handleImageError}
                 />
-                {selectedChat.otherUser.isOnline && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#262335]"></div>
-                )}
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">
@@ -755,7 +750,6 @@ const Messages: React.FC<MessagesProps> = ({
                           </span>
                         </div>
                       </div>
-                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
                     </div>
                   )}
 
@@ -801,7 +795,6 @@ const Messages: React.FC<MessagesProps> = ({
                       {message.isSent && (
                         <>
                           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent rounded-3xl pointer-events-none"></div>
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full opacity-60"></div>
                         </>
                       )}
                     </div>
@@ -840,17 +833,6 @@ const Messages: React.FC<MessagesProps> = ({
                         )}
                       </div>
                     </div>
-
-                    {/* Reaction placeholder */}
-                    <div
-                      className={`opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute ${
-                        message.isSent ? "-left-8 top-1/2" : "-right-8 top-1/2"
-                      } transform -translate-y-1/2`}
-                    >
-                      <button className="w-6 h-6 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110">
-                        <span className="text-xs">❤️</span>
-                      </button>
-                    </div>
                   </div>
 
                   {/* Individual message options - only show when not in selection mode */}
@@ -875,41 +857,6 @@ const Messages: React.FC<MessagesProps> = ({
 
         <div className="bg-gradient-to-r from-white/95 to-gray-50/95 dark:from-gray-800/95 dark:to-gray-900/95 backdrop-blur-sm border-t border-gray-200/50 dark:border-gray-700/50 p-6">
           <div className="flex items-end gap-4">
-            {/* Quick action buttons */}
-            <div className="flex items-center space-x-2">
-              <button className="p-3 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-2xl transition-all duration-200 group hover:scale-110">
-                <svg
-                  className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                  />
-                </svg>
-              </button>
-
-              <button className="p-3 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-2xl transition-all duration-200 group hover:scale-110">
-                <svg
-                  className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </button>
-            </div>
-
             <div className="flex-1 relative group">
               <div className="relative">
                 <input
@@ -1054,9 +1001,6 @@ const Messages: React.FC<MessagesProps> = ({
                     className="w-12 h-12 rounded-full"
                     onError={handleImageError}
                   />
-                  {chat.otherUser.isOnline && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#262335]"></div>
-                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -1196,9 +1140,6 @@ const Messages: React.FC<MessagesProps> = ({
                           className="w-10 h-10 rounded-full"
                           onError={handleImageError}
                         />
-                        {user.isOnline && (
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#262335]"></div>
-                        )}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">

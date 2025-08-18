@@ -9,7 +9,6 @@ interface User {
   _id: string;
   username: string;
   email: string;
-  isOnline: boolean;
   joinedAt: string;
 }
 
@@ -211,20 +210,12 @@ const Explore = () => {
                     height={48}
                     className="w-12 h-12 rounded-full"
                   />
-                  {user.isOnline && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#262335]"></div>
-                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-gray-900 dark:text-white">
                       {user.username}
                     </h3>
-                    {user.isOnline && (
-                      <span className="text-xs text-green-600 dark:text-green-400">
-                        <TranslatedText>Online</TranslatedText>
-                      </span>
-                    )}
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     @{user.username.toLowerCase()}

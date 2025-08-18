@@ -45,10 +45,9 @@ export async function GET(request: NextRequest) {
     const formattedUsers = followedUsers.map((user) => ({
       id: user._id.toString(),
       username: user.username,
-      displayName: user.username,
+      displayName: user.displayName || user.username,
       avatar: generateConsistentAvatar(user.username),
-      isOnline: Math.random() > 0.5, // Random online status for demo
-      followedAt: user.createdAt,
+      joinedAt: user.createdAt,
     }));
 
     return NextResponse.json(

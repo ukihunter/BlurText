@@ -97,7 +97,6 @@ export async function GET(request: NextRequest) {
       _id: user._id.toString(), // Use _id to match the interface
       username: user.username,
       email: user.username + "@anonymous.user", // Generate email for anonymous users
-      isOnline: Math.random() > 0.3, // 70% chance of being online for demo
       joinedAt: user.createdAt,
     }));
 

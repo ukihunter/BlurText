@@ -55,7 +55,7 @@ export const contentValidation = {
     content: Joi.string().min(1).max(1000).required().messages({
       "string.max": "Message content must not exceed 1000 characters",
     }),
-    messageType: Joi.string().valid("text", "image", "file").default("text"),
+    messageType: Joi.string().valid("text", "emoji").default("text"),
   }),
 
   profile: Joi.object({
