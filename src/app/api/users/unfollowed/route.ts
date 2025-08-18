@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import dbConnect from "@/lib/mongodb";
 import UserFollows from "@/models/UserFollows";
 import User from "@/models/User";
+import { generateConsistentAvatar } from "@/utils/avatarUtils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,20 +78,19 @@ export async function GET(request: NextRequest) {
     // Step 4: Shuffle the users randomly and then limit results
     const shuffledUsers = unfollowedUsers.sort(() => Math.random() - 0.5);
     const limitedUsers = shuffledUsers.slice(0, limit);
-    const formattedUsers = limitedUsers.map((user) => ({
+    const userList = shuffledUsers.slice(0, limit).map((user) => ({
       _id: user._id.toString(),
       username: user.username,
-      email: user.username + "@anonymous.user",
-      isOnline: Math.random() > 0.3, // 70% chance online for demo
+      avatar: generateConsistentAvatar(user.username),
       joinedAt: user.createdAt,
     }));
 
-    console.log("Returning users:", formattedUsers.map(u => u.username));
+    console.log("Returning users:", userList.map(u => u.username));
 
     return NextResponse.json(
       {
-        users: formattedUsers,
-        count: formattedUsers.length,
+        users: userList,
+        count: userList.length,
         currentUser: decoded.username,
         totalUsersInDB: allUsers.length,
         followedUsersCount: followedUsernames.length,

@@ -141,12 +141,9 @@ This document describes the implementation of a WhatsApp-like messaging system t
 
 ## Future Enhancement Possibilities
 - **Message Search**: Search through message history
-- **File Attachments**: Support for images and files
-- **Message Reactions**: Like/react to specific messages
 - **Group Chats**: Extend to support multiple participants
 - **Message Encryption**: End-to-end encryption for privacy
 - **Push Notifications**: Real-time notifications for new messages
-- **Online Status**: Real-time online/offline indicators
 - **Message Deletion**: Allow users to delete messages
 - **Chat Archiving**: Archive old conversations
 

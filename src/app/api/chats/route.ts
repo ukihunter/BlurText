@@ -63,7 +63,6 @@ export async function GET(request: NextRequest) {
             username: otherParticipant,
             displayName: otherParticipant,
             avatar: generateConsistentAvatar(otherParticipant || "user"),
-            isOnline: Math.random() > 0.5, // Random online status for demo
           },
           lastMessage: lastMessage?.content || chat.lastMessage,
           lastMessageTime: lastMessage?.createdAt || chat.lastMessageTime,
@@ -177,7 +176,6 @@ export async function POST(request: NextRequest) {
         username: sanitizedOtherUsername,
         displayName: sanitizedOtherUsername,
         avatar: generateConsistentAvatar(sanitizedOtherUsername),
-        isOnline: Math.random() > 0.5,
       },
     });
   } catch (error) {

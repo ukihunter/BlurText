@@ -62,10 +62,8 @@ export async function GET(request: NextRequest) {
       return {
         id: user._id.toString(),
         username: user.username,
-        displayName: user.username,
+        displayName: user.displayName || user.username,
         avatar: generateConsistentAvatar(user.username),
-        isOnline: Math.random() > 0.5, // Random online status for demo
-        joinedAt: user.createdAt,
         isFollower: followerUsernames.includes(user.username),
         isFollowing: followingUsernames.includes(user.username),
         isMutual: followerUsernames.includes(user.username) && followingUsernames.includes(user.username)

@@ -9,7 +9,7 @@ import WhisperModal from "@/components/WhisperModal";
 import CommentModal from "@/components/CommentModal";
 import Icon from "@/components/Icon";
 import PostImages from "@/components/PostImages";
-import { showSuccessToast } from "@/utils/toast";
+import { showSuccessToast, showErrorToast } from "@/utils/toast";
 
 interface User {
   id: string;
@@ -77,6 +77,7 @@ const Profile: React.FC<ProfileProps> = ({ selectedUser }) => {
   const [showWhisperModal, setShowWhisperModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; postId: string | null }>({ show: false, postId: null });
 
   // Fix hydration issues by only rendering after mount and ensure clean state
   useEffect(() => {
@@ -316,6 +317,47 @@ const Profile: React.FC<ProfileProps> = ({ selectedUser }) => {
 
   const handlePostCreated = () => {
     fetchUserPosts(); // Refresh user posts after creating a new one
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    try {
+      console.log("Attempting to delete post:", postId);
+      const response = await fetch(`/api/posts/delete?postId=${postId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      console.log("Delete response status:", response.status);
+      
+      if (response.ok) {
+        // Remove the post from both userPosts and likedPosts state
+        setUserPosts((prev) => prev.filter((post) => post._id !== postId));
+        setLikedPosts((prev) => prev.filter((post) => post._id !== postId));
+        showSuccessToast("Post deleted successfully!");
+        setDeleteConfirmation({ show: false, postId: null });
+      } else {
+        const error = await response.json();
+        console.error("Error deleting post:", error);
+        showErrorToast("Failed to delete post. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      showErrorToast("Failed to delete post. Please try again.");
+    }
+  };
+
+  const showDeleteConfirmation = (postId: string) => {
+    setDeleteConfirmation({ show: true, postId });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirmation.postId) {
+      handleDeletePost(deleteConfirmation.postId);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmation({ show: false, postId: null });
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -780,16 +822,34 @@ const Profile: React.FC<ProfileProps> = ({ selectedUser }) => {
                           </button>
                         </div>
 
-                        <button
-                          onClick={() => handleBookmark(post._id)}
-                          className={`p-2 rounded-full transition-all duration-200 ${
-                            post.isBookmarkedByUser
-                              ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg"
-                              : "text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          }`}
-                        >
-                          <Icon name="bookmark.svg" width={18} height={18} />
-                        </button>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleBookmark(post._id)}
+                            className={`p-2 rounded-full transition-all duration-200 ${
+                              post.isBookmarkedByUser
+                                ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg"
+                                : "text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            }`}
+                          >
+                            <Icon name="bookmark.svg" width={18} height={18} />
+                          </button>
+
+                          {/* Show delete button only for user's own posts */}
+                          {(!selectedUser || selectedUser.username === user?.username) && (
+                            <button
+                              onClick={() => {
+                                console.log("Delete button clicked for post:", post._id);
+                                console.log("selectedUser:", selectedUser);
+                                console.log("user:", user);
+                                showDeleteConfirmation(post._id);
+                              }}
+                              className="p-2 rounded-full transition-all duration-200 text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              title="Delete post"
+                            >
+                              <Icon name="cross.svg" width={18} height={18} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -960,8 +1020,37 @@ const Profile: React.FC<ProfileProps> = ({ selectedUser }) => {
             postId={selectedPost._id}
             postContent={selectedPost.content}
             postAuthor={selectedPost.username}
+            currentUser={user}
             onCommentAdded={handleCommentAdded}
           />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmation.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 w-full">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+                <TranslatedText>Confirm Delete</TranslatedText>
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                <TranslatedText>Are you sure you want to delete this post? This action cannot be undone.</TranslatedText>
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <TranslatedText>Cancel</TranslatedText>
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  <TranslatedText>Delete</TranslatedText>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -982,7 +1071,6 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
     confirmPassword: "",
   });
   const [anonymitySettings, setAnonymitySettings] = useState({
-    hideOnlineStatus: false,
     enableDisappearingMessages: false,
     autoDeleteMessages: false,
     blockScreenshots: false,
@@ -994,6 +1082,8 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -1088,7 +1178,6 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
         },
         credentials: "include", // Include cookies
         body: JSON.stringify({
-          displayName: formData.displayName,
           anonymitySettings,
         }),
       });
@@ -1114,6 +1203,59 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      console.log("Attempting to delete account...");
+      const response = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          password: deleteAccountPassword,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Account deleted successfully:", data);
+        showSuccessToast("Account deleted successfully!");
+        
+        // Redirect to home page after a short delay
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 2000);
+      } else {
+        const error = await response.json();
+        console.error("Error deleting account:", error);
+        showErrorToast(error.error || "Failed to delete account. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      showErrorToast("Failed to delete account. Please try again.");
+    }
+  };
+
+  const showDeleteAccountConfirmation = () => {
+    setShowDeleteAccountModal(true);
+    setDeleteAccountPassword("");
+  };
+
+  const confirmDeleteAccount = () => {
+    if (!deleteAccountPassword) {
+      showErrorToast("Please enter your password to confirm account deletion.");
+      return;
+    }
+    handleDeleteAccount();
+    setShowDeleteAccountModal(false);
+  };
+
+  const cancelDeleteAccount = () => {
+    setShowDeleteAccountModal(false);
+    setDeleteAccountPassword("");
   };
 
   return (
@@ -1190,14 +1332,12 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <TranslatedText>Display Name</TranslatedText>
               </label>
-              <input
-                type="text"
-                name="displayName"
-                value={formData.displayName}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262335] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                placeholder="Your anonymous display name"
-              />
+              <div className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-medium">
+                {formData.displayName || user?.username || 'Anonymous'}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <TranslatedText>Display name is set to your username and cannot be changed</TranslatedText>
+              </p>
             </div>
           </div>
         </div>
@@ -1269,30 +1409,6 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
             <TranslatedText>Anonymity & Privacy Settings</TranslatedText>
           </h3>
           <div className="space-y-6">
-            {/* Hide Online Status */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                  <TranslatedText>Hide Online Status</TranslatedText>
-                </h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  <TranslatedText>
-                    Others won&apos;t see when you&apos;re online
-                  </TranslatedText>
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="hideOnlineStatus"
-                  checked={anonymitySettings.hideOnlineStatus}
-                  onChange={handleAnonymityChange}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
             {/* Disappearing Messages */}
             <div className="flex items-center justify-between">
               <div>
@@ -1397,12 +1513,54 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onBack }) => {
             <TranslatedText>Account Actions</TranslatedText>
           </h3>
           <div className="space-y-4">
-            <button className="w-full px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors">
+            <button 
+              onClick={showDeleteAccountConfirmation}
+              className="w-full px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+            >
               <TranslatedText>Delete Account Permanently</TranslatedText>
             </button>
           </div>
         </div>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteAccountModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 w-full">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              <TranslatedText>Delete Account Permanently</TranslatedText>
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              <TranslatedText>This action cannot be undone. All your posts, messages, and data will be permanently deleted.</TranslatedText>
+            </p>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              <TranslatedText>Type "DELETE" to confirm:</TranslatedText>
+            </p>
+            <input
+              type="password"
+              value={deleteAccountPassword}
+              onChange={(e) => setDeleteAccountPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-6 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Enter your password"
+            />
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelDeleteAccount}
+                className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <TranslatedText>Cancel</TranslatedText>
+              </button>
+              <button
+                onClick={confirmDeleteAccount}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                disabled={!deleteAccountPassword}
+              >
+                <TranslatedText>Delete Account</TranslatedText>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

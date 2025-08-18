@@ -8,7 +8,6 @@ export interface IUser extends Document {
   updatedAt?: Date;
   isAnonymous: boolean;
   anonymitySettings?: {
-    hideOnlineStatus: boolean;
     enableDisappearingMessages: boolean;
     autoDeleteMessages: boolean;
     blockScreenshots: boolean;
@@ -43,10 +42,6 @@ const UserSchema = new Schema<IUser>({
     default: true,
   },
   anonymitySettings: {
-    hideOnlineStatus: {
-      type: Boolean,
-      default: false,
-    },
     enableDisappearingMessages: {
       type: Boolean,
       default: false,

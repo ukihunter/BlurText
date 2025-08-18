@@ -6,8 +6,6 @@ export const fallbackTranslations: {
   en: {
     Mutual: "Mutual",
     Follower: "Follower", 
-    Online: "Online",
-    Offline: "Offline",
     "Start a conversation with": "Start a conversation with",
     "Follow Back": "Follow Back",
     "Following...": "Following...",
@@ -19,6 +17,17 @@ export const fallbackTranslations: {
     "Try again": "Try again",
     "Loading...": "Loading...",
     "Trending Crypto": "Trending Crypto",
+    "Display name is set to your username and cannot be changed": "Display name is set to your username and cannot be changed",
+    "Delete post": "Delete post",
+    "Are you sure you want to delete this post? This action cannot be undone.": "Are you sure you want to delete this post? This action cannot be undone.",
+    "Post deleted successfully!": "Post deleted successfully!",
+    "Confirm Delete": "Confirm Delete",
+    "Cancel": "Cancel",
+    "Delete": "Delete",
+    "Delete Account Permanently": "Delete Account Permanently",
+    "This action cannot be undone. All your posts, messages, and data will be permanently deleted.": "This action cannot be undone. All your posts, messages, and data will be permanently deleted.",
+    "Type \"DELETE\" to confirm:": "Enter your password to confirm:",
+    "Delete Account": "Delete Account",
   },
   // Russian translations
   ru: {
@@ -58,8 +67,6 @@ export const fallbackTranslations: {
     "Find people to follow and connect with them": "Найдите людей для подписки и свяжитесь с ними",
     Mutual: "Взаимно",
     Follower: "Подписчик",
-    Online: "В сети",
-    Offline: "Не в сети",
     "Start a conversation with": "Начать разговор с",
     "Follow Back": "Подписаться в ответ",
     "Privacy Policy": "Политика конфиденциальности",
@@ -178,6 +185,17 @@ export const fallbackTranslations: {
     "If you have any questions about our privacy practices or need to report a security concern, please contact our development team through our official GitHub repository.":
       "Если у вас есть вопросы о наших методах конфиденциальности или вам нужно сообщить о проблеме безопасности, пожалуйста, свяжитесь с нашей командой разработчиков через наш официальный репозиторий GitHub.",
     "Last updated: August 2025": "Последнее обновление: август 2025",
+    "Display name is set to your username and cannot be changed": "Отображаемое имя установлено на ваше имя пользователя и не может быть изменено",
+    "Delete post": "Удалить пост",
+    "Are you sure you want to delete this post? This action cannot be undone.": "Вы уверены, что хотите удалить этот пост? Это действие нельзя отменить.",
+    "Post deleted successfully!": "Пост успешно удален!",
+    "Confirm Delete": "Подтвердить удаление",
+    "Cancel": "Отмена",
+    "Delete": "Удалить",
+    "Delete Account Permanently": "Удалить аккаунт навсегда",
+    "This action cannot be undone. All your posts, messages, and data will be permanently deleted.": "Это действие нельзя отменить. Все ваши посты, сообщения и данные будут навсегда удалены.",
+    "Type \"DELETE\" to confirm:": "Введите пароль для подтверждения:",
+    "Delete Account": "Удалить аккаунт",
   },
 
   // Italian translations
@@ -217,8 +235,6 @@ export const fallbackTranslations: {
     "Find people to follow and connect with them": "Trova persone da seguire e connettiti con loro",
     Mutual: "Reciproco",
     Follower: "Follower",
-    Online: "Online",
-    Offline: "Offline",
     "Start a conversation with": "Inizia una conversazione con",
     "Follow Back": "Segui a tua volta",
     "Privacy Policy": "Politica sulla Privacy",
@@ -339,6 +355,17 @@ export const fallbackTranslations: {
     "If you have any questions about our privacy practices or need to report a security concern, please contact our development team through our official GitHub repository.":
       "Se hai domande sulle nostre pratiche di privacy o devi segnalare un problema di sicurezza, contatta il nostro team di sviluppo attraverso il nostro repository GitHub ufficiale.",
     "Last updated: August 2025": "Ultimo aggiornamento: agosto 2025",
+    "Display name is set to your username and cannot be changed": "Il nome visualizzato è impostato sul tuo nome utente e non può essere modificato",
+    "Delete post": "Elimina post",
+    "Are you sure you want to delete this post? This action cannot be undone.": "Sei sicuro di voler eliminare questo post? Questa azione non può essere annullata.",
+    "Post deleted successfully!": "Post eliminato con successo!",
+    "Confirm Delete": "Conferma Eliminazione",
+    "Cancel": "Annulla",
+    "Delete": "Elimina",
+    "Delete Account Permanently": "Elimina Account Permanentemente",
+    "This action cannot be undone. All your posts, messages, and data will be permanently deleted.": "Questa azione non può essere annullata. Tutti i tuoi post, messaggi e dati saranno eliminati permanentemente.",
+    "Type \"DELETE\" to confirm:": "Inserisci la password per confermare:",
+    "Delete Account": "Elimina Account",
   },
 
   // French translations
@@ -494,6 +521,17 @@ export const fallbackTranslations: {
     "If you have any questions about our privacy practices or need to report a security concern, please contact our development team through our official GitHub repository.":
       "Si vous avez des questions sur nos pratiques de confidentialité ou devez signaler un problème de sécurité, contactez notre équipe de développement via notre dépôt GitHub officiel.",
     "Last updated: August 2025": "Dernière mise à jour: août 2025",
+    "Display name is set to your username and cannot be changed": "Le nom d'affichage est défini sur votre nom d'utilisateur et ne peut pas être modifié",
+    "Delete post": "Supprimer le post",
+    "Are you sure you want to delete this post? This action cannot be undone.": "Êtes-vous sûr de vouloir supprimer ce post ? Cette action ne peut pas être annulée.",
+    "Post deleted successfully!": "Post supprimé avec succès !",
+    "Confirm Delete": "Confirmer la Suppression",
+    "Cancel": "Annuler",
+    "Delete": "Supprimer",
+    "Delete Account Permanently": "Supprimer le Compte Définitivement",
+    "This action cannot be undone. All your posts, messages, and data will be permanently deleted.": "Cette action ne peut pas être annulée. Tous vos posts, messages et données seront supprimés définitivement.",
+    "Type \"DELETE\" to confirm:": "Entrez votre mot de passe pour confirmer:",
+    "Delete Account": "Supprimer le Compte",
   },
 
   // Sinhala translations
@@ -646,6 +684,17 @@ export const fallbackTranslations: {
     "If you have any questions about our privacy practices or need to report a security concern, please contact our development team through our official GitHub repository.":
       "අපගේ පුද්ගලිකත්ව ක්‍රම ගැන ඔබට ප්‍රශ්න ඇත්නම් හෝ ආරක්ෂක සැලකිල්ලක් වාර්තා කිරීමට අවශ්‍ය නම්, කරුණාකර අපගේ නිල GitHub ගබඩාව හරහා අපගේ සංවර්ධන කණ්ඩායමට සම්බන්ධ වන්න.",
     "Last updated: August 2025": "අවසන් වරට යාවත්කාලීන කරන ලද්දේ: 2025 අගෝස්තු",
+    "Display name is set to your username and cannot be changed": "ප්‍රදර්ශන නම ඔබේ පරිශීලක නාමයට සකසා ඇති අතර එය වෙනස් කළ නොහැක",
+    "Delete post": "පෝස්ට් එක ඉවත් කරන්න",
+    "Are you sure you want to delete this post? This action cannot be undone.": "ඔබට මෙම පෝස්ට් එක ඉවත් කිරීමට අවශ්‍ය බව විශ්වාසද? මෙම ක්‍රියාව අවලංගු කළ නොහැක.",
+    "Post deleted successfully!": "පෝස්ට් එක සාර්ථකව ඉවත් කරන ලදී!",
+    "Confirm Delete": "ඉවත් කිරීම තහවුරු කරන්න",
+    "Cancel": "අවලංගු කරන්න",
+    "Delete": "ඉවත් කරන්න",
+    "Delete Account Permanently": "ගිණුම ස්ථිරවම ඉවත් කරන්න",
+    "This action cannot be undone. All your posts, messages, and data will be permanently deleted.": "මෙම ක්‍රියාව අවලංගු කළ නොහැක. ඔබේ සියලුම පෝස්ට්, පණිවිඩ සහ දත්ත ස්ථිරවම ඉවත් කෙරේ.",
+    "Type \"DELETE\" to confirm:": "තහවුරු කිරීමට ඔබේ මුරපදය ඇතුළු කරන්න:",
+    "Delete Account": "ගිණුම ඉවත් කරන්න",
   },
 
   // Japanese translations
@@ -793,6 +842,17 @@ export const fallbackTranslations: {
     "If you have any questions about our privacy practices or need to report a security concern, please contact our development team through our official GitHub repository.":
       "プライバシー慣行について質問がある場合、またはセキュリティ上の懸念を報告する必要がある場合は、公式GitHubリポジトリを通じて開発チームにお問い合わせください。",
     "Last updated: August 2025": "最終更新: 2025年8月",
+    "Display name is set to your username and cannot be changed": "表示名はユーザー名に設定されており、変更することはできません",
+    "Delete post": "投稿を削除",
+    "Are you sure you want to delete this post? This action cannot be undone.": "この投稿を削除してもよろしいですか？この操作は元に戻すことができません。",
+    "Post deleted successfully!": "投稿が正常に削除されました！",
+    "Confirm Delete": "削除を確認",
+    "Cancel": "キャンセル",
+    "Delete": "削除",
+    "Delete Account Permanently": "アカウントを完全に削除",
+    "This action cannot be undone. All your posts, messages, and data will be permanently deleted.": "この操作は元に戻すことができません。すべての投稿、メッセージ、データが完全に削除されます。",
+    "Type \"DELETE\" to confirm:": "確認のためパスワードを入力してください:",
+    "Delete Account": "アカウントを削除",
   },
 };
 
